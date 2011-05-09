@@ -1,0 +1,28 @@
+Introduction
+------------
+
+A Python implementation of a PaySwarm client. The client is capable of
+registering with a PaySwarm Authority, generating public/private keys,
+digitally signing and registering assets for sale, registering listings,
+establishing Payment Sessions and performing purchases.
+
+Usage
+-----
+
+To initialize a PaySwarm client run the following command:
+
+./payswarm init
+
+To register a listing:
+
+./payswarm register listing.json
+
+To perform a purchase of the listing:
+
+./payswarm purchase listing.json
+
+To retrieve a contract associated with the purchase of the listing:
+
+./payswarm contract listing.json
+
+
