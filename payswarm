@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+#
+# Performs a number of PaySwarm client commands.
+import sys
+sys.path += ("lib/",)
+
+from optparse import OptionParser
+import os
+import payswarm
+import time
+
+USAGE = """%prog [OPTIONS] COMMAND ...
+
+Performs a variety of PaySwarm client operations such as registering 
+with a PaySwarm Authority, generating public/private keys, digitally 
+signing and registering assets for sale, registering listings, 
+establishing Payment Sessions and performing purchases.
+
+Examples:
+   %prog config             [Configure a number of PaySwarm defaults]
+   %prog register           [Register the PaySwarm client]
+   %prog purchase LISTING   [Perform a purchase using the client]
+   %prog receipt  LISTING   [Retrieve a contract for a previous purchase]
+
+************** %prog command line options **************"""
+
+DEFAULTS = \
+{ \
+    "authority": "https://dev.payswarm.com/client-config" \
+}
+
+def _parse_options():
+    """
+    Get options from command line and return them.
+    """
+    parser = OptionParser(usage=USAGE)
+    parser.add_option(
+        "--authority", action="store",
+        default=DEFAULTS["authority"], 
+        help=" "
+        "[Default: %default]")
+    parser.add_option(
+        "-c", "--config", action="store",
+        default=None, 
+        help="The configuration file to read in addition to the regular "
+        "configuration files. "
+        "[Default: %default]")
+
+    options, args = parser.parse_args()
+    options.args = args
+
+    # Check to make sure that there are enough options
+    if(len(options.args) < 1):
+        sys.stderr.write( \
+            "ERROR: You must provide at least one command to execute.\n")
+        parser.print_help()
+        sys.exit(1)
+
+    return options
+
+if __name__ == "__main__":
+    # Get the options from the command line
+    options = _parse_options()
+
+    # Get configuration options from /etc/payswarm1.cfg and ~/.payswarm1
+    config = payswarm.config.parse(DEFAULTS, options)
+
+    # FIXME: Dump out the config
+    config.write(sys.stdout)
+
+    for command in options.args:
+        print "Executing %s" % command
+

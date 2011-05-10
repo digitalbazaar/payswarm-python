@@ -9,9 +9,9 @@ establishing Payment Sessions and performing purchases.
 Usage
 -----
 
-To initialize a PaySwarm client run the following command:
+To configure a PaySwarm client run the following command:
 
-./payswarm init
+./payswarm config
 
 To register a listing:
 
