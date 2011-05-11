@@ -5,6 +5,11 @@ import json
 import os.path
 import urllib2
 
+# Constants used by the configuration service
+PSW_REQUEST = "http://purl.org/payswarm/webservices#oAuthRequest"
+PSW_AUTHORIZE = "http://purl.org/payswarm/webservices#oAuthAuthorize"
+PSW_TOKENS = "http://purl.org/payswarm/webservices#oAuthTokens"
+
 def _update_config(defaults, config, options, section, name):
     """"
     Updates a configuration value in the live configuration.
@@ -56,17 +61,17 @@ def save(config):
     config.write(ufile)
     ufile.close()
 
-def set_oauth(config, token, secret):
+def set_oauth_credentials(config, token, secret):
     """Stores the OAuth token and secret in the configuration file.
     
     config - the config to write the new keypair to. The public key is stored
         in the [general] section under 'public-key'. The private key is
         stored in the [general] section under 'private-key'."""
 
-    config.set("general", "oauth-token", token)
-    config.set("general", "oauth-secret", secret)
+    config.set("general", "oauth-application-client-id", token)
+    config.set("general", "oauth-application-secret", secret)
 
-def retrieve_endpoints(config):
+def retrieve_basic_endpoints(config):
     """Retrieves the PaySwarm Authority Web Service endpoints.
 
     config - the config to retrieve the 'authority' configuration value
@@ -78,17 +83,21 @@ def retrieve_endpoints(config):
 
     # Create the client-config read request
     authority = config.get("general", "authority")
-    print "AUTHORITY:", authority
-    req = urllib2.Request(authority,
-        headers = { "Content-Type": "application/json" })
 
     # Read the basic client configuration parameters from the URL
-    f = urllib2.urlopen(req)
-    aconfig = json.loads(f.read())
+    data = urllib2.urlopen(authority)
+    aconfig = json.loads(data.read())
 
     # Extract the information from the authority configuration
-    for k, v in aconfig:
-        print k, v
+    for k, v in aconfig.items():
+        key = k.lstrip("<").rstrip(">")
+        value = v.lstrip("<").rstrip(">")
+        if(key == PSW_REQUEST):
+            config.set("general", "oauth-request-url", value)
+        elif(key == PSW_AUTHORIZE):
+            config.set("general", "oauth-authorize-url", value)
+        elif(key == PSW_TOKENS):
+            config.set("general", "oauth-tokens-url", value)
 
 def generate_keys(config):
     """Generates a new PKI keypair and stores it in the given config.

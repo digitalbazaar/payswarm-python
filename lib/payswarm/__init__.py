@@ -10,55 +10,23 @@ import config
 
 __all__ = ['config']
 
-class PaySwarmAuthority(object):
-    def __init__( \
-        self, authority_url="https://dev.payswarm.com/", discover_api=False):
-        self._authority_url = authority_url
-        if discover_api:
-            self.discover_api()
-        else:
-            self._update_api()
-
-    def _update_api(self):
-        """Update authority URL fields."""
-        api = self._authority_url
-        oauth_api = os.path.join(api, "oauth1/")
-        self.request_url = os.path.join(oauth_api, "tokens/request")
-        self.authorize_url = os.path.join(api, "profile/tokens/authorize")
-        self.access_url = os.path.join(oauth_api, "tokens")
-        self.contracts_url = os.path.join(api, "contracts")
-        self.asset_info_url = os.path.join(api, "assets")
-        self.license_info_url = os.path.join(api, "license")
-        self.listing_info_url = os.path.join(api, "listings")
-
-    def discover_api(self):
-        """Use service discovery to find PaySwarm API URLs."""
-        # FIXME Use service discovery to find api path
-        self._api_path = ""
-        self._update_api()
-
 class PaySwarmClient(oauth.Client):
-    """PaySwarm OAuth Client"""
+    """The PaySwarm Client is used to communicate with any PaySwarm system."""
 
-    def __init__(self, authority, token=None, secret=None, **args):
-        if authority is not None and \
-            not isinstance(authority, PaySwarmAuthority):
-            raise ValueError("Invalid authority.")
-        self.authority = authority
+    def __init__(self, config, client_id, secret):
+        """Creates a new PaySwarm client using a provided configuration.
 
-        # Create the OAuth client
-        # FIXME: set the proper client ID and client secret
-        consumer = oauth.Consumer(token, secret)
-        if(token):
-            self.token = oauth.Token(token, secret)
-            oauth.Client.__init__(self, consumer, self.token, **args)
-        else:
-            oauth.Client.__init__(self, consumer, **args)
+        config - The configuration information for the PaySwarm client.
+        client_id - the OAuth Client ID for the consumer.
+        secret - the OAuth secret for the consumer.
+        """
+        oauth.Client.__init__(self, oauth.Consumer(client_id, secret))
+        self.config = config
 
     def _check_response(self, response, content, error_message):
         code = int(response["status"])
         # check code is in 2xx range
-        # http request should have resolved 3xx issues
+        # HTTP request should have resolved 3xx issues
         if code < 200 or code >= 300:
             if response["content-type"] == "application/json":
                 try:
@@ -78,6 +46,52 @@ class PaySwarmClient(oauth.Client):
         else:
             # fallback to plain content
             return content
+
+    def generate_registration_url(self):
+        request_url = self.config.get("general", "oauth-request-url")
+        authorize_url = self.config.get("general", "oauth-authorize-url")
+        params = {
+            "oauth_callback": "oob",
+            "scope": "payswarm-registration",
+        }
+
+        # Request a new registration token
+        response, content = self.request(request_url, "POST", parameters=params)
+        self._check_response(response, content, 
+            "Error: Failed to request a temporary registration token.")
+
+        # Extract the registration token information
+        self.token = oauth.Token.from_string(content)
+
+        # Write the registration token to the configuration
+        self.config.set("general", "oauth-registration-token", self.token.key)
+
+        # Build the registration URL
+        rval = authorize_url + "?oauth_token=%s" % self.token.key
+
+        return rval
+
+    def complete_registration(self, verifier):
+        tokens_url = self.config.get("general", "oauth-tokens-url")
+        self.token.set_verifier(verifier)
+
+        response, content = self.request(tokens_url, "POST")
+        self._check_response(response, content, 
+            "Error: Failed to request a permanent registration token.")
+        self.token = oauth.Token.from_string(content)
+
+        # Write the registration token to the configuration
+        self.config.set( \
+            "general", "oauth-registration-secret", self.token.secret)
+
+
+
+
+
+
+
+
+
 
     def get_request_token(self):
         logging.debug("Get request token")

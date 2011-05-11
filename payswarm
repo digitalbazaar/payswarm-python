@@ -26,7 +26,9 @@ Examples:
 
 DEFAULTS = \
 { \
-    "authority": "https://dev.payswarm.com/client-config" \
+    "authority": "https://dev.payswarm.com/client-config", \
+    "oauth-application-client-id": "", \
+    "oauth-application-secret": "" \
 }
 
 def _parse_options():
@@ -56,32 +58,75 @@ def _parse_options():
 
     return options
 
+def _ask(question, config=None, section=None, name=None):
+    """Asks a question on the command line using a default value if one exists.
+
+    question - the question to ask on the command line.
+    config - the configuration to read the default values from.
+    section - the section containing the option to store.
+    name - the name of the option to store."""
+    rval = ""
+    default = ""
+
+    # Check to see if there is a default value for the option
+    if(config != None and config.has_option(section, name)):
+        default = config.get(section, name)
+
+    # Attempt to get the option from the command line
+    while(len(rval) < 1):
+        if(len(default) > 0):
+            sys.stdout.write(question + " [Default: %s] " % default)
+            sys.stdout.flush()
+            rval = sys.stdin.readline().strip()
+            if(len(rval) < 1):
+                rval = default
+        else:
+            sys.stdout.write(question + " ")
+            sys.stdout.flush()
+            rval = sys.stdin.readline().strip()
+            if(len(rval) < 1):
+                sys.stdout.write("Warning: You must enter something.\n")
+                sys.stdout.flush()
+
+    return rval
+
 def _configure(config):
     """Performs basic PaySwarm client configuration by asking a few questions.
     """
     sys.stdout.write("""
-In order to fully configure this PaySwarm client, you will need a
-Web Browser. Go to the following URL and create an Application Key:
+In order to fully configure this PaySwarm client, you will need to use a
+Web Browser. Go to the following URL and create an Application profile:
 
 https://dev.payswarm.com/profile/clients
 
 """)
-    sys.stdout.write("What is the OAuth Token ID? ")
-    sys.stdout.flush()
-    token = sys.stdin.readline()
-    sys.stdout.write("What is the OAuth Token Secret? ")
-    sys.stdout.flush()
-    secret = sys.stdin.readline()
-    payswarm.config.set_oauth(config, token, secret)
+    # Get the registration token and secret
+    client_id = _ask("Application Client ID?", 
+        config, "general", "oauth-application-client-id")
+    secret = _ask("Application Secret?",
+        config, "general", "oauth-application-secret")
+    payswarm.config.set_oauth_credentials(config, client_id, secret)
+
+    # Retrieve the basic PaySwarm endpoints
+    sys.stdout.write( \
+        "Retrieving PaySwarm Authority web service endpoints...\n")
+    payswarm.config.retrieve_basic_endpoints(config)
+
+    # Authorize the registration token
+    client = payswarm.PaySwarmClient(config, client_id, secret)
+    sys.stdout.write( \
+        "Retrieving PaySwarm account details...\n")
+    url = client.generate_registration_url()
+
+    sys.stdout.write( \
+        "Go to the following URL and authorize your application:\n\n"
+        "   %s\n\n" % url)
+    verifier = _ask("Enter the verification key:")
+    client.complete_registration(verifier)
 
     sys.stdout.write("Generating public/private keypair...\n")
     sys.stdout.flush()
     #payswarm.config.generate_keys(config)
-
-    sys.stdout.write( \
-        "Retrieving PaySwarm Authority Web Service endpoints...\n")
-    sys.stdout.flush()
-    payswarm.config.retrieve_endpoints(config)
 
     sys.stdout.write("Registering public key with PaySwarm Authority...\n")
     sys.stdout.flush()
