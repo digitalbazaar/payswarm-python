@@ -8,6 +8,8 @@ import os
 import urlparse
 import config
 
+__all__ = ['config']
+
 class PaySwarmAuthority(object):
     def __init__( \
         self, authority_url="https://dev.payswarm.com/", discover_api=False):

@@ -2,7 +2,7 @@
 #
 # Performs a number of PaySwarm client commands.
 import sys
-sys.path += ("lib/",)
+sys.path.insert(0, "lib")
 
 from optparse import OptionParser
 import os
@@ -30,9 +30,7 @@ DEFAULTS = \
 }
 
 def _parse_options():
-    """
-    Get options from command line and return them.
-    """
+    """Get options from command line and return them."""
     parser = OptionParser(usage=USAGE)
     parser.add_option(
         "--authority", action="store",
@@ -58,6 +56,39 @@ def _parse_options():
 
     return options
 
+def _configure(config):
+    """Performs basic PaySwarm client configuration by asking a few questions.
+    """
+    sys.stdout.write("""
+In order to fully configure this PaySwarm client, you will need a
+Web Browser. Go to the following URL and create an Application Key:
+
+https://dev.payswarm.com/profile/clients
+
+""")
+    sys.stdout.write("What is the OAuth Token ID? ")
+    sys.stdout.flush()
+    token = sys.stdin.readline()
+    sys.stdout.write("What is the OAuth Token Secret? ")
+    sys.stdout.flush()
+    secret = sys.stdin.readline()
+    payswarm.config.set_oauth(config, token, secret)
+
+    sys.stdout.write("Generating public/private keypair...\n")
+    sys.stdout.flush()
+    #payswarm.config.generate_keys(config)
+
+    sys.stdout.write( \
+        "Retrieving PaySwarm Authority Web Service endpoints...\n")
+    sys.stdout.flush()
+    payswarm.config.retrieve_endpoints(config)
+
+    sys.stdout.write("Registering public key with PaySwarm Authority...\n")
+    sys.stdout.flush()
+
+    sys.stdout.write("Configuration complete.\n")
+    payswarm.config.save(config)
+
 if __name__ == "__main__":
     # Get the options from the command line
     options = _parse_options()
@@ -65,9 +96,13 @@ if __name__ == "__main__":
     # Get configuration options from /etc/payswarm1.cfg and ~/.payswarm1
     config = payswarm.config.parse(DEFAULTS, options)
 
-    # FIXME: Dump out the config
-    config.write(sys.stdout)
-
     for command in options.args:
-        print "Executing %s" % command
+        if(command == "config"):
+            _configure(config)
+        elif(command == "register"):
+            pass
+        elif(command == "purchase"):
+            pass
+        elif(command == "receipt"):
+            pass
 
