@@ -131,10 +131,11 @@ https://dev.payswarm.com/profile/clients
 
     sys.stdout.write("Generating public/private keypair...\n")
     sys.stdout.flush()
-    #payswarm.config.generate_keys(config)
+    payswarm.config.generate_keys(config)
 
     sys.stdout.write("Registering public key with PaySwarm Authority...\n")
     sys.stdout.flush()
+    client.register_public_key()
 
     sys.stdout.write("Configuration complete.\n")
     payswarm.config.save(config)

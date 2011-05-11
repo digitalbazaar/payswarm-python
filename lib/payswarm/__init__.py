@@ -148,6 +148,19 @@ class PaySwarmClient(oauth.Client):
         self._check_response(response, content, error_message)
         return self._decode_response(response, content)
 
+    def register_public_key(self):
+        """Registers the public key stored in the config object.
+
+        Registers the public key stored in the configuration file at the
+        PaySwarm Authority and stores the URL to the key in the configuration
+        file as well.
+
+        Throws an exception if anything nasty happens.
+        """
+        key_url = self.config.get("application", "keys-url")
+
+        # FIXME: Implement public key registration
+
     def get_request_token(self):
         logging.debug("Get request token")
         params = {
