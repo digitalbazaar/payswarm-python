@@ -11,6 +11,10 @@ lib/Crypto:
 	@echo "Downloading pycrypto..."
 	@rm -rf /tmp/pycrypto.payswarm/
 	@git clone https://github.com/dlitz/pycrypto.git /tmp/pycrypto.payswarm  > /dev/null 2>&1
-	@mv /tmp/pycrypto.payswarm/lib/Crypto lib
+	@echo "Building pycrypto..."
+	@cd /tmp/pycrypto.payswarm && python setup.py build
+	@echo "installing pycrypto to lib/Crypto..."
+	@cd /tmp/pycrypto.payswarm && python setup.py install --home=/tmp/pycrypto.payswarm/tmp
+	@mv /tmp/pycrypto.payswarm/tmp/lib/python/Crypto lib
 	@rm -rf /tmp/pycrypto.payswarm/
 
