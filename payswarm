@@ -26,18 +26,16 @@ Examples:
 
 DEFAULTS = \
 { \
-    "authority": "https://dev.payswarm.com/client-config", \
-    "oauth-application-client-id": "", \
-    "oauth-application-secret": "" \
+    "config-url": "https://dev.payswarm.com/client-config" \
 }
 
 def _parse_options():
     """Get options from command line and return them."""
     parser = OptionParser(usage=USAGE)
     parser.add_option(
-        "--authority", action="store",
-        default=DEFAULTS["authority"], 
-        help=" "
+        "--config-url", action="store", dest="config-url",
+        default=DEFAULTS["config-url"], 
+        help="The PaySwarm Authority client configuration URL."
         "[Default: %default]")
     parser.add_option(
         "-c", "--config", action="store",
@@ -101,28 +99,35 @@ https://dev.payswarm.com/profile/clients
 
 """)
     # Get the registration token and secret
-    client_id = _ask("Application Client ID?", 
-        config, "general", "oauth-application-client-id")
-    secret = _ask("Application Secret?",
-        config, "general", "oauth-application-secret")
+    client_id = _ask("Application client ID?", 
+        config, "general", "application-client-id")
+    secret = _ask("Application secret?",
+        config, "general", "application-secret")
     payswarm.config.set_oauth_credentials(config, client_id, secret)
 
     # Retrieve the basic PaySwarm endpoints
     sys.stdout.write( \
         "Retrieving PaySwarm Authority web service endpoints...\n")
-    payswarm.config.retrieve_basic_endpoints(config)
+    payswarm.config.set_basic_endpoints(config)
 
     # Authorize the registration token
     client = payswarm.PaySwarmClient(config, client_id, secret)
-    sys.stdout.write( \
-        "Retrieving PaySwarm account details...\n")
     url = client.generate_registration_url()
-
     sys.stdout.write( \
         "Go to the following URL and authorize your application:\n\n"
         "   %s\n\n" % url)
     verifier = _ask("Enter the verification key:")
     client.complete_registration(verifier)
+
+    # Retrieve the specialized application endpoints
+    sys.stdout.write( \
+        "Retrieving application owner's PaySwarm account details...\n")
+    payswarm.config.set_application_endpoints(client, config)
+
+    # Retrieve the application preferences
+    sys.stdout.write( \
+        "Retrieving application owner's PaySwarm account details...\n")
+    payswarm.config.set_application_preferences(client, config)
 
     sys.stdout.write("Generating public/private keypair...\n")
     sys.stdout.flush()

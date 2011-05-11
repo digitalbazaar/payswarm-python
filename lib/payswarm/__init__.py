@@ -24,6 +24,12 @@ class PaySwarmClient(oauth.Client):
         self.config = config
 
     def _check_response(self, response, content, error_message):
+        """Checks the response from an based PaySwarm call.
+
+        response - The HTTP response object.
+        content - the body of the HTTP response.
+        error_message - the error message to throw if there is an error.
+        """
         code = int(response["status"])
         # check code is in 2xx range
         # HTTP request should have resolved 3xx issues
@@ -38,6 +44,12 @@ class PaySwarmClient(oauth.Client):
             raise Exception(error_message, code, content)
 
     def _decode_response(self, response, content):
+        """Checks the response from an based PaySwarm call.
+
+        response - The HTTP response object.
+        content - the body of the HTTP response, which will be decoded depending
+            on the Content-Type.
+        """
         ct = response.get("content-type", None)
         if ct == "application/json":
             return json.loads(content)
@@ -48,8 +60,20 @@ class PaySwarmClient(oauth.Client):
             return content
 
     def generate_registration_url(self):
-        request_url = self.config.get("general", "oauth-request-url")
-        authorize_url = self.config.get("general", "oauth-authorize-url")
+        """Requests a registration token and returns a verification URL.
+
+        Performs the first part of what is called an Out-Of-Band OAuth 
+        verification. This type of verification is needed when operating 
+        outside of a Web User Agent environment. 
+
+        OAuth relies heavily on re-directs, if a re-direct mechanism isn't 
+        available, all that can be done is to ask the person using the 
+        application to go to a particular URL.
+
+        Throws an exception if anything nasty happens.
+        """
+        request_url = self.config.get("general", "request-url")
+        authorize_url = self.config.get("general", "authorize-url")
         params = {
             "oauth_callback": "oob",
             "scope": "payswarm-registration",
@@ -64,7 +88,7 @@ class PaySwarmClient(oauth.Client):
         self.token = oauth.Token.from_string(content)
 
         # Write the registration token to the configuration
-        self.config.set("general", "oauth-registration-token", self.token.key)
+        self.config.set("application", "registration-token", self.token.key)
 
         # Build the registration URL
         rval = authorize_url + "?oauth_token=%s" % self.token.key
@@ -72,26 +96,57 @@ class PaySwarmClient(oauth.Client):
         return rval
 
     def complete_registration(self, verifier):
-        tokens_url = self.config.get("general", "oauth-tokens-url")
+        """Completes the retrieval of a registration token.
+
+        Performs the second part of what is called an Out-Of-Band OAuth 
+        verification. This type of verification is needed when operating 
+        outside of a Web User Agent environment. 
+
+        OAuth relies heavily on re-directs, if a re-direct mechanism isn't 
+        available, all that can be done is to ask the person using the 
+        application to go to a particular URL. This step happens after the
+        person has gone to the URL and verified the registration token
+        request. They are given a verifier, which is given as input to this
+        method.
+
+        verifier - the verifier provided to the person after approving the
+            registration token.
+
+        Throws an exception if anything nasty happens.
+        """
+        tokens_url = self.config.get("general", "tokens-url")
         self.token.set_verifier(verifier)
 
-        response, content = self.request(tokens_url, "POST")
+        # get the registration token and secret
+        response, content = self.request(tokens_url, "GET")
         self._check_response(response, content, 
             "Error: Failed to request a permanent registration token.")
         self.token = oauth.Token.from_string(content)
 
-        # Write the registration token to the configuration
+        # write the registration token to the configuration
         self.config.set( \
-            "general", "oauth-registration-secret", self.token.secret)
+            "application", "registration-secret", self.token.secret)
 
+    def call(self, url, error_message, post_data=None):
+        """Performs a call against a URL using OAuth credentials.
 
+        An OAuth Token must already be active for this client. The Token is
+        used to authenticate and perform a call to the given URL. The standard
+        HTTP method is GET unless post_data is supplied, then it's POST.
 
+        Throws an exception if anything nasty happens.
+        """
+        response = None
+        content = None
 
+        # check to see if the call is a GET or a POST based on post_data
+        if(post_data == None):
+            response, content = self.request(url, "GET")
+        else:
+            response, content = self.request(url, "POST", parameters=post_data)
 
-
-
-
-
+        self._check_response(response, content, error_message)
+        return self._decode_response(response, content)
 
     def get_request_token(self):
         logging.debug("Get request token")
@@ -110,23 +165,6 @@ class PaySwarmClient(oauth.Client):
         self.token = oauth.Token.from_string(content)
         #print dict(urlparse.parse_qsl(self.token))
         return self.token
-
-    def authorize_token(self):
-        logging.debug("Authorize token")
-        u = self.authority.authorize_url + "?oauth_token=" + self.token.key
-        print "Visit this URL to authorize:"
-        print u
-        pin = ""
-        while len(pin) == 0:
-            pin = raw_input("What is the PIN? ")
-        #resp, content = self.request(u, "POST")
-        #self._check_response(resp, content, "Token authorization failure.")
-
-        #print "\n*** Authorized ***"
-        #print dict(urlparse.parse_qsl(content))
-
-        #self.token.set_verifier(urlparse.parse_qs(content)["oauth_verifier"])
-        self.token.set_verifier(pin)
 
     def get_payment_token(self):
         resp, content = self.request(self.authority.access_url, "POST")

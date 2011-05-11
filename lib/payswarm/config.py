@@ -9,15 +9,19 @@ import urllib2
 PSW_REQUEST = "http://purl.org/payswarm/webservices#oAuthRequest"
 PSW_AUTHORIZE = "http://purl.org/payswarm/webservices#oAuthAuthorize"
 PSW_TOKENS = "http://purl.org/payswarm/webservices#oAuthTokens"
+PSW_PREFERENCES = "http://purl.org/payswarm/webservices#oAuthPreferences"
+PSW_CONTRACTS = "http://purl.org/payswarm/webservices#oAuthContracts"
+PSW_LICENSES = "http://purl.org/payswarm/webservices#oAuthLicenses"
+PSW_KEYS = "http://purl.org/payswarm/webservices#oAuthKeys"
+# FIXME: This is an error below - should be payswarm#account
+PS_ACCOUNT = "http://purl.org/payswarm/#account"
+PS_LICENSE_HASH = "http://purl.org/payswarm#licenseHash"
+PSP_LICENSE = "http://purl.org/payswarm/preferences#license" 
 
 def _update_config(defaults, config, options, section, name):
     """"
     Updates a configuration value in the live configuration.
-    """
-    # add the section if it doesn't already exist
-    if(not config.has_section(section)):
-        config.add_section(section)
-    
+    """    
     if(not config.has_option(section, name)):
         # if the option doesn't exist in the config, set it
         config.set(section, name, getattr(options, name))
@@ -39,10 +43,18 @@ def parse(defaults, options):
     config = ConfigParser()
     config.read(cfiles)
 
+    # add the general section if it doesn't already exist
+    if(not config.has_section("general")):
+        config.add_section("general")
+
+    # add the application section if it doesn't already exist
+    if(not config.has_section("application")):
+        config.add_section("application")
+
     # Update the configuration with the command line options, if the
     # options are different from the default or if the config doesn't
     # contain the options
-    _update_config(defaults, config, options, "general", "authority")
+    _update_config(defaults, config, options, "general", "config-url")
 
     # If the user's configuration file doesn't exist, create it
     if(not os.path.exists(uconfig)):
@@ -68,24 +80,24 @@ def set_oauth_credentials(config, token, secret):
         in the [general] section under 'public-key'. The private key is
         stored in the [general] section under 'private-key'."""
 
-    config.set("general", "oauth-application-client-id", token)
-    config.set("general", "oauth-application-secret", secret)
+    config.set("application", "client-id", token)
+    config.set("application", "client-secret", secret)
 
-def retrieve_basic_endpoints(config):
+def set_basic_endpoints(config):
     """Retrieves the PaySwarm Authority Web Service endpoints.
 
     config - the config to retrieve the 'authority' configuration value
         from. The resulting web service endpoint URLs are written to the
-        config under the [general] section 'oauth-authorize-url', 
-        'oauth-request-url', and 'oauth-tokens-url'.
+        config under the [general] section 'authorize-url', 
+        'request-url', and 'tokens-url'.
 
     Throws an exception if the retrieval was a failure."""
 
     # Create the client-config read request
-    authority = config.get("general", "authority")
+    config_url = config.get("general", "config-url")
 
     # Read the basic client configuration parameters from the URL
-    data = urllib2.urlopen(authority)
+    data = urllib2.urlopen(config_url)
     aconfig = json.loads(data.read())
 
     # Extract the information from the authority configuration
@@ -93,11 +105,74 @@ def retrieve_basic_endpoints(config):
         key = k.lstrip("<").rstrip(">")
         value = v.lstrip("<").rstrip(">")
         if(key == PSW_REQUEST):
-            config.set("general", "oauth-request-url", value)
+            config.set("general", "request-url", value)
         elif(key == PSW_AUTHORIZE):
-            config.set("general", "oauth-authorize-url", value)
+            config.set("general", "authorize-url", value)
         elif(key == PSW_TOKENS):
-            config.set("general", "oauth-tokens-url", value)
+            config.set("general", "tokens-url", value)
+
+def set_application_endpoints(client, config):
+    """Retrieves and sets all of the application endpoints.
+
+    config - The following items will be updated in the
+        configuration under the [general] section: authorize-url, 
+        request-url, tokens-url, preferences-url, contracts-url,
+        licenses-url, and keys-url.
+    """
+    # Retrieve the application endpoints
+    authority_url = config.get("general", "config-url")
+    endpoints = client.call( \
+        authority_url, "Failed to retrieve application endpoints.")
+
+    # Extract the information from the authority configuration
+    for k, v in endpoints.items():
+        key = k.lstrip("<").rstrip(">")
+        value = v.lstrip("<").rstrip(">")
+        if(key == PSW_REQUEST):
+            config.set("general", "request-url", value)
+        elif(key == PSW_AUTHORIZE):
+            config.set("general", "authorize-url", value)
+        elif(key == PSW_TOKENS):
+            config.set("general", "tokens-url", value)
+        elif(key == PSW_PREFERENCES):
+            config.set("application", "preferences-url", value)
+        elif(key == PSW_CONTRACTS):
+            config.set("general", "contracts-url", value)
+        elif(key == PSW_LICENSES):
+            config.set("general", "licenses-url", value)
+        elif(key == PSW_KEYS):
+            config.set("application", "keys-url", value)
+        else:
+            print "UNKNOWN %s: %s" % (key, value)
+
+def set_application_preferences(client, config):
+    """Retrieves and sets all of the application preferences.
+
+    config - The following items will be updated in the
+        configuration under the [general] section: .
+    """
+    # Retrieve the application endpoints
+    preferences_url = config.get("application", "preferences-url")
+    preferences = client.call( \
+        preferences_url, "Failed to retrieve application endpoints.")
+
+    # Extract the information from the authority configuration
+    for k, v in preferences.items():
+        key = k.lstrip("<").rstrip(">")
+        if(key == PS_ACCOUNT):
+            accounts = v
+            for account in accounts:
+                account_id = account["@"].lstrip("<").rstrip(">")
+                config.set( \
+                    "application", "financial-account", account_id)
+        elif(key == PSP_LICENSE):
+            licenses = v
+            for license in licenses:
+                license_id = license["@"].lstrip("<").rstrip(">")
+                license_hash = \
+                    license["<" + PS_LICENSE_HASH + ">"].lstrip("<").rstrip(">")
+                config.set("application", "default-license", license_id)
+                config.set("application", "default-license-hash", license_hash)
 
 def generate_keys(config):
     """Generates a new PKI keypair and stores it in the given config.
@@ -110,6 +185,6 @@ def generate_keys(config):
     public_key  = private_key.publickey()
     private_pem = private_key.exportKey()
     
-    config.set("general", "private-key", private_pem)
-    config.set("general", "public-key", public_key.exportKey())
+    config.set("application", "private-key", private_pem)
+    config.set("application", "public-key", public_key.exportKey())
 
