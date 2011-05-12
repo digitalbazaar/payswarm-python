@@ -158,8 +158,15 @@ class PaySwarmClient(oauth.Client):
         Throws an exception if anything nasty happens.
         """
         key_url = self.config.get("application", "keys-url")
+        public_key = self.config.get("application", "public-key")
 
-        # FIXME: Implement public key registration
+        # perform the registration
+        post_data = {"public_key": public_key}
+        info = self.call(key_url, "Failed to register public key", post_data)
+        
+        # store the key URL in the configuration
+        public_key_url = info["@"].lstrip("<").rstrip(">")
+        self.config.set("application", "public-key-url", public_key_url)
 
     def get_request_token(self):
         logging.debug("Get request token")

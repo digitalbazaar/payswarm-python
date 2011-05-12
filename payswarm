@@ -107,7 +107,7 @@ https://dev.payswarm.com/profile/clients
 
     # Retrieve the basic PaySwarm endpoints
     sys.stdout.write( \
-        "Retrieving PaySwarm Authority web service endpoints...\n")
+        "Retrieving basic OAuth web service endpoints...\n")
     payswarm.config.set_basic_endpoints(config)
 
     # Authorize the registration token
@@ -121,7 +121,7 @@ https://dev.payswarm.com/profile/clients
 
     # Retrieve the specialized application endpoints
     sys.stdout.write( \
-        "Retrieving application owner's PaySwarm account details...\n")
+        "Retrieving PaySwarm web service endpoints...\n")
     payswarm.config.set_application_endpoints(client, config)
 
     # Retrieve the application preferences

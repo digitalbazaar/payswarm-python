@@ -73,14 +73,14 @@ def save(config):
     config.write(ufile)
     ufile.close()
 
-def set_oauth_credentials(config, token, secret):
+def set_oauth_credentials(config, client_id, secret):
     """Stores the OAuth token and secret in the configuration file.
     
-    config - the config to write the new keypair to. The public key is stored
-        in the [general] section under 'public-key'. The private key is
-        stored in the [general] section under 'private-key'."""
+    config - the config to write the OAuth credentials to. The client_id is 
+        stored in the [application] section under 'client-id'. The private 
+        key is stored in the [application] section under 'client-secret'."""
 
-    config.set("application", "client-id", token)
+    config.set("application", "client-id", client_id)
     config.set("application", "client-secret", secret)
 
 def set_basic_endpoints(config):
