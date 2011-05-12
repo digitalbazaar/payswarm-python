@@ -55,6 +55,7 @@ def parse(defaults, options):
     # options are different from the default or if the config doesn't
     # contain the options
     _update_config(defaults, config, options, "general", "config-url")
+    _update_config(defaults, config, options, "general", "listings-url")
 
     # If the user's configuration file doesn't exist, create it
     if(not os.path.exists(uconfig)):

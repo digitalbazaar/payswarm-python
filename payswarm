@@ -4,6 +4,7 @@
 import sys
 sys.path.insert(0, "lib")
 
+import json
 from optparse import OptionParser
 import os
 import payswarm
@@ -18,7 +19,7 @@ establishing Payment Sessions and performing purchases.
 
 Examples:
    %prog config             [Configure a number of PaySwarm defaults]
-   %prog register           [Register the PaySwarm client]
+   %prog register LISTING   [Register a listing to be purchased]
    %prog purchase LISTING   [Perform a purchase using the client]
    %prog receipt  LISTING   [Retrieve a contract for a previous purchase]
 
@@ -26,7 +27,8 @@ Examples:
 
 DEFAULTS = \
 { \
-    "config-url": "https://dev.payswarm.com/client-config" \
+    "config-url": "https://dev.payswarm.com/client-config", \
+    "listings-url": "http://listings.dev.payswarm.com/" \
 }
 
 def _parse_options():
@@ -35,7 +37,12 @@ def _parse_options():
     parser.add_option(
         "--config-url", action="store", dest="config-url",
         default=DEFAULTS["config-url"], 
-        help="The PaySwarm Authority client configuration URL."
+        help="The PaySwarm Authority client configuration URL. "
+        "[Default: %default]")
+    parser.add_option(
+        "--listings-url", action="store", dest="listings-url",
+        default=DEFAULTS["listings-url"], 
+        help="URL for Web Service that stores assets and listings. "
         "[Default: %default]")
     parser.add_option(
         "-c", "--config", action="store",
@@ -89,7 +96,10 @@ def _ask(question, config=None, section=None, name=None):
     return rval
 
 def _configure(config):
-    """Performs basic PaySwarm client configuration by asking a few questions.
+    """Performs basic PaySwarm client configuration.
+
+    Asks a number of questions on the command line, contacts the PaySwarm
+    Authority and configures all OAuth tokens and public/private keys.
     """
     sys.stdout.write("""
 In order to fully configure this PaySwarm client, you will need to use a
@@ -100,9 +110,9 @@ https://dev.payswarm.com/profile/clients
 """)
     # Get the registration token and secret
     client_id = _ask("Application client ID?", 
-        config, "general", "application-client-id")
+        config, "application", "client-id")
     secret = _ask("Application secret?",
-        config, "general", "application-secret")
+        config, "application", "secret")
     payswarm.config.set_oauth_credentials(config, client_id, secret)
 
     # Retrieve the basic PaySwarm endpoints
@@ -140,6 +150,33 @@ https://dev.payswarm.com/profile/clients
     sys.stdout.write("Configuration complete.\n")
     payswarm.config.save(config)
 
+def _register(config, lfilename):
+    """Registers a given listing on the listing service.
+
+    config - the configuration object to get the listing service URL from.
+    lfilename - the filename containing the listing data.
+    """
+
+    # Read the asset and listing data from the given file
+    try:
+        lfile = open(lfilename, "r")
+        ldata = json.loads(lfile.read())
+        asset = ldata[0]
+        listing = ldata[1]
+
+        # Register the loaded asset
+        sys.stdout.write("Registering asset... ")
+        payswarm.storage.register_asset(config, asset)
+        sys.stdout.write("done.\n")
+
+        # Register the loaded listing
+        sys.stdout.write("Registering listing... ")
+        payswarm.storage.register_listing(config, asset, listing)
+        sys.stdout.write("done.\n")
+    except ValueError, e:
+        sys.stderr.write("Error: Failed to parse %s as JSON-LD\n" % lfilename)
+        sys.stderr.write(str(e))
+
 if __name__ == "__main__":
     # Get the options from the command line
     options = _parse_options()
@@ -151,7 +188,11 @@ if __name__ == "__main__":
         if(command == "config"):
             _configure(config)
         elif(command == "register"):
-            pass
+            if(options.args[-1].endswith(".jsonld")):
+                _register(config, options.args[-1])
+            else:
+                sys.stderr.write("Error: You must specify a listing file "
+                    "ending in .jsonld\n")
         elif(command == "purchase"):
             pass
         elif(command == "receipt"):

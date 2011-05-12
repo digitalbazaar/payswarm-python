@@ -7,8 +7,11 @@ import oauth2 as oauth
 import os
 import urlparse
 import config
+import storage
+import jsonld
+import signature
 
-__all__ = ['config']
+__all__ = ["config", "storage", "jsonld", "signature"]
 
 class PaySwarmClient(oauth.Client):
     """The PaySwarm Client is used to communicate with any PaySwarm system."""

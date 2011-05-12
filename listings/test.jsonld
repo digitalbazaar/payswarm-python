@@ -1,53 +1,53 @@
 [
-{
-   "@": "AUTOFILLED_VALUE#asset",
-   "a": "ps:Asset",
-   "dc:creator":
    {
-      "foaf:name": "John Doe"
+      "@": "example/test/asset",
+      "a": "ps:Asset",
+      "dc:creator":
+      {
+         "foaf:name": "John Doe"
+      },
+      "dc:title": "A Test Asset",
+      "ps:assetProvider": "AUTOFILLED_VALUE#webid",
+      "ps:authority": "AUTOFILLED_VALUE#authority",
+      "ps:contentUrl": "AUTOFILLED_VALUE#asset"
    },
-   "dc:title": "A Test Asset",
-   "ps:assetProvider": "AUTOFILLED_VALUE#webid",
-   "ps:authority": "AUTOFILLED_VALUE#authority",
-   "ps:contentUrl": "AUTOFILLED_VALUE#asset"
-},
-{
-   "@": "AUTOFILLED_VALUE",
-   "a": ["gr:Offering", "ps:Listing"],
-   "com:payee": 
-   [
-      {
-         "@": "AUTOFILLED_VALUE#listing-payee",
-         "a": "com:Payee",
-         "com:currency": "USD",
-         "com:destination": "AUTOFILLED_VALUE#primary",
-         "com:payeePosition": 0,
-         "com:rate": "0.040973",
-         "com:rateType": "<com:FlatAmount>",
-         "rdfs:comment": "Payment for Test Asset."
-      }
-   ],
-   "com:payeeRule":
-   [
-      {
-         "a": "com:PayeeRule",
-         "com:destinationOwnerType": "<ps:Authority>",
-         "com:maximumRate": "10.00",
-         "com:rateContext":
-         [
-            "<com:Inclusive>",
-            "<com:Tax>",
-            "<com:TaxExempt>"
-         ],
-         "com:rateType": "<com:Percentage>"
-      }
-   ],
-   "ps:asset": "AUTOFILLED_VALUE#asset",
-   "ps:assetHash": "AUTOFILLED_VALUE",
-   "ps:license": "AUTOFILLED_VALUE",
-   "ps:licenseHash": "AUTOFILLED_VALUE",
-   "ps:validFrom": "AUTOFILLED_VALUE",
-   "ps:validUntil": "AUTOFILLED_VALUE",
-}
+   {
+      "@": "example/test/listing",
+      "a": ["gr:Offering", "ps:Listing"],
+      "com:payee": 
+      [
+         {
+            "@": "AUTOFILLED_VALUE#listing-payee",
+            "a": "com:Payee",
+            "com:currency": "USD",
+            "com:destination": "AUTOFILLED_VALUE#primary",
+            "com:payeePosition": 0,
+            "com:rate": "0.040973",
+            "com:rateType": "<com:FlatAmount>",
+            "rdfs:comment": "Payment for Test Asset."
+         }
+      ],
+      "com:payeeRule":
+      [
+         {
+            "a": "com:PayeeRule",
+            "com:destinationOwnerType": "<ps:Authority>",
+            "com:maximumRate": "10.00",
+            "com:rateContext":
+            [
+               "<com:Inclusive>",
+               "<com:Tax>",
+               "<com:TaxExempt>"
+            ],
+            "com:rateType": "<com:Percentage>"
+         }
+      ],
+      "ps:asset": "AUTOFILLED_VALUE#asset",
+      "ps:assetHash": "AUTOFILLED_VALUE",
+      "ps:license": "AUTOFILLED_VALUE",
+      "ps:licenseHash": "AUTOFILLED_VALUE",
+      "ps:validFrom": "AUTOFILLED_VALUE",
+      "ps:validUntil": "AUTOFILLED_VALUE"
+   }
 ]
 
