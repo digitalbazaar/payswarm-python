@@ -166,16 +166,16 @@ def _register(config, lfilename):
 
         # Register the loaded asset
         sys.stdout.write("Registering asset... ")
-        payswarm.storage.register_asset(config, asset)
+        signed_asset = payswarm.storage.register_asset(config, asset)
         sys.stdout.write("done.\n")
 
         # Register the loaded listing
         sys.stdout.write("Registering listing... ")
-        payswarm.storage.register_listing(config, asset, listing)
+        payswarm.storage.register_listing(config, signed_asset, listing)
         sys.stdout.write("done.\n")
     except ValueError, e:
         sys.stderr.write("Error: Failed to parse %s as JSON-LD\n" % lfilename)
-        sys.stderr.write(str(e))
+        sys.stderr.write(str(e) + "\n")
 
 if __name__ == "__main__":
     # Get the options from the command line

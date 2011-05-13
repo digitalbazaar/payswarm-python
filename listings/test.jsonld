@@ -6,10 +6,7 @@
       {
          "foaf:name": "John Doe"
       },
-      "dc:title": "A Test Asset",
-      "ps:assetProvider": "AUTOFILLED_VALUE#webid",
-      "ps:authority": "AUTOFILLED_VALUE#authority",
-      "ps:contentUrl": "AUTOFILLED_VALUE#asset"
+      "dc:title": "A Test Asset"
    },
    {
       "@": "example/test/listing",
@@ -17,10 +14,10 @@
       "com:payee": 
       [
          {
-            "@": "AUTOFILLED_VALUE#listing-payee",
+            "@": "AUTOFILL",
             "a": "com:Payee",
             "com:currency": "USD",
-            "com:destination": "AUTOFILLED_VALUE#primary",
+            "com:destination": "AUTOFILL",
             "com:payeePosition": 0,
             "com:rate": "0.040973",
             "com:rateType": "<com:FlatAmount>",
@@ -41,13 +38,7 @@
             ],
             "com:rateType": "<com:Percentage>"
          }
-      ],
-      "ps:asset": "AUTOFILLED_VALUE#asset",
-      "ps:assetHash": "AUTOFILLED_VALUE",
-      "ps:license": "AUTOFILLED_VALUE",
-      "ps:licenseHash": "AUTOFILLED_VALUE",
-      "ps:validFrom": "AUTOFILLED_VALUE",
-      "ps:validUntil": "AUTOFILLED_VALUE"
+      ]
    }
 ]
 
