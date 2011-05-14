@@ -2,8 +2,12 @@
 import copy
 import json
 
+# FIXME: This code will be replaced very soon with proper JSON-LD 
+# normalization code from the new specification.
+
 # The default context is defined by the JSON-LD specification
 RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+XSD_ANYURI = "http://www.w3.org/2001/XMLSchema#anyURI"
 DEFAULT_CONTEXT = \
 { \
     "com": "http://purl.org/commerce#", \
@@ -39,6 +43,7 @@ DEFAULT_CONTEXT = \
             "http://www.w3.org/2001/XMLSchema#anyURI", \
         "http://purl.org/commerce#date": \
             "http://www.w3.org/2001/XMLSchema#dateTime"
+        # FIXME: Type coercion is not happening for validFrom and validTo
     } \
 }
 
@@ -69,11 +74,12 @@ def _expand_curies(data):
     data - the given data object, which will have all of its CURIEs expanded
         in-place.
     """
+    # Expand all of the properties first
     for key, value in data.items():
-        # expand the key CURIE first
         if(key == "a"):
             data["<" + RDF_TYPE + ">"] = value
-            del data["a"]
+            del data[key]
+            key = "<" + RDF_TYPE + ">"
         elif(":" in key):
             iri = _expand_curie(key)
             data[iri] = value
@@ -82,6 +88,8 @@ def _expand_curies(data):
                 # Set the 'active' key to the newly expanded iri
                 key = iri
 
+    # Expand all of the objects second
+    for key, value in data.items():
         # expand all of the object CURIEs next
         if(type(value) == type({})):
             # recursively expand the CURIEs for the value if it is an object
@@ -91,21 +99,111 @@ def _expand_curies(data):
             newarr = []
             for item in value:
                 # expand all string values of concern
-                if(type(item) == type("")):
-                    if(key == RDF_TYPE \
+                if(type(item) == type("") or type(item) == type(u"")):
+                    if((RDF_TYPE in key) \
                         or (item.startswith("<") and item.endswith(">"))):
                             iri = _expand_curie(item)
                             newarr.append(iri)
                     else:
                         newarr.append(item)
                 elif(type(item) == type({})):
+                    # expand objects recursively and add them to the newarr
                     _expand_curies(item)
+                    newarr.append(item)
             data[key] = newarr
-        elif(type(value) == type("")):
-            if(key == "<" + RDF_TYPE + ">"):
+        elif(type(value) == type("") or type(value) == type(u"")):
+            # expand string values that are either types or CURIEs
+            if((RDF_TYPE in key) or \
+                (value.startswith("<") and value.endswith(">"))):
                 data[key] = _expand_curie(value)
 
-    #print "EXPANDED CURIES: ", json.dumps(data, sort_keys = True, indent = 3)
+def _coerce_iri(value):
+    """Coerces the given value to an IRI if it isn't already one.
+    
+    value - the string value to coerce.
+    
+    Returns a valid JSON-LD IRI.
+    """
+    rval = value
+    
+    # if the IRI is not enclosed in <>, enclose it
+    if(not value.startswith("<") or not value.endswith(">")):
+        rval = "<" + value + ">"
+    
+    return rval
+
+def _coerce_typed_literal(value, datatype):
+    """Coerces the given value to a given datatype.
+    
+    value - the string value to coerce.
+    datatype - the datatype to coerce the value to.
+    
+    Returns a valid JSON-LD typed literal.
+    """
+    rval = value
+    dtstring = "^^<" + datatype + ">"
+
+    # if the value doesn't end in the typed literal syntax, enclose it    
+    if(not value.endswith(dtstring)):
+        rval = value + dtstring
+
+    return rval
+
+def _coerce_types(data):
+    """Coerces values in a JSON-LD structure into a normalized form.
+
+    data - the given data object, which will have all of the objects
+        coerced into the proper normalized form.
+    """
+    for key, value in data.items():
+        coerce_iri = False
+        coerce_type = None
+        
+        # if the key is @ or rdf:type, coerce the object to an IRI
+        if((key == "@") or (RDF_TYPE in key)):
+            coerce_iri = True
+        else:
+            # if key exists in type coercion list, coerce to datatype
+            for prop, datatype in DEFAULT_CONTEXT["#types"].items():
+                prop = "<" + prop + ">"
+                if(prop == key):
+                    if(datatype == XSD_ANYURI):
+                        coerce_iri = True
+                    else:
+                        coerce_type = "<" + datatype + ">"
+
+        # perform the coercion
+        if(coerce_iri):
+            if(type(value) == type("") or type(value) == type(u"")):
+                # if string, coerce to an IRI
+                data[key] = _coerce_iri(value)
+            elif(type(value) == type([])):
+                # if array, coerce each item to an IRI
+                newarr = []
+                for item in value:
+                    if(type(item) == type({})):
+                        # FIXME: Type coercion is failing for arrays of objs
+                        _coerce_types(item)
+                        newarr.append(item)
+                    elif(type(value) == type("") or type(value) == type(u"")):
+                        newarr.append(_coerce_iri(item))
+                data[key] = newarr
+        elif(coerce_type != None):
+            # FIXME: Type coercion is not happening for numbers
+            if(type(value) == type("") or type(value) == type(u"")):
+                # if string, coerce to a typed literal
+                data[key] = _coerce_typed_literal(value, coerce_type)
+            elif(type(value) == type([])):
+                # if array, coerce each item to a typed literal
+                newarr = []
+                for item in value:
+                    if(type(item) == type({})):
+                        _coerce_types(item)
+                        newarr.append(item)
+                    elif(type(value) == type("") or type(value) == type(u"")):
+                        newarr.append(_coerce_typed_literal(item, coerce_type))
+                    
+                data[key] = newarr
 
 def normalize(arr):
     """Performs JSON-LD normalization of a given associative array.
@@ -115,10 +213,14 @@ def normalize(arr):
 
     Returns the normalized JSON-LD string value of the given array.
     """
+    rval = ""
     norm = copy.deepcopy(arr)
 
     _expand_curies(norm)
-    #_coerce_types(norm)
+    _coerce_types(norm)
 
-    return json.dumps(arr)
+
+    rval = json.dumps(norm, sort_keys=True, separators=(',', ':'))
+    #print "NORMALIZED:", rval
+    return rval
 
