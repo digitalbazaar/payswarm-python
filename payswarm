@@ -165,14 +165,15 @@ def _register(config, lfilename):
         listing = ldata[1]
 
         # Register the loaded asset
-        sys.stdout.write("Registering asset... ")
+        sys.stdout.write("Registering asset:")
         signed_asset = payswarm.storage.register_asset(config, asset)
-        sys.stdout.write("done.\n")
+        sys.stdout.write(" %s\n" % signed_asset["@"])
 
         # Register the loaded listing
-        sys.stdout.write("Registering listing... ")
-        payswarm.storage.register_listing(config, signed_asset, listing)
-        sys.stdout.write("done.\n")
+        sys.stdout.write("Registering listing:")
+        signed_listing = payswarm.storage.register_listing(\
+            config, signed_asset, listing)
+        sys.stdout.write(" %s\n" % signed_listing["@"])
     except ValueError, e:
         sys.stderr.write("Error: Failed to parse %s as JSON-LD\n" % lfilename)
         sys.stderr.write(str(e) + "\n")

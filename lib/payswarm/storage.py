@@ -53,6 +53,7 @@ def register_listing(config, signed_asset, listing):
         listing.
     listing - the listing to register in JSON format.
 
+    Returns the signed listing.
     Throws an exception if something nasty happens.
     """
     # Fill out the config-based information in the given listing
@@ -91,4 +92,6 @@ def register_listing(config, signed_asset, listing):
         headers = { "Content-Type": "application/json" },
         data = json.dumps(sl, sort_keys = True, indent = 3))
     urllib2.urlopen(req)
+
+    return sl
 
