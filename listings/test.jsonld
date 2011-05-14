@@ -12,33 +12,29 @@
       "@": "example/test/listing",
       "a": ["gr:Offering", "ps:Listing"],
       "com:payee": 
-      [
-         {
-            "@": "AUTOFILL",
-            "a": "com:Payee",
-            "com:currency": "USD",
-            "com:destination": "AUTOFILL",
-            "com:payeePosition": 0,
-            "com:rate": "0.040973",
-            "com:rateType": "<com:FlatAmount>",
-            "rdfs:comment": "Payment for Test Asset."
-         }
-      ],
+      {
+         "@": "example/test/listing#payee",
+         "a": "com:Payee",
+         "com:currency": "USD",
+         "com:destination": "AUTOFILL",
+         "com:payeePosition": 0,
+         "com:rate": "0.040973",
+         "com:rateType": "<com:FlatAmount>",
+         "rdfs:comment": "Payment for Test Asset."
+      },
       "com:payeeRule":
-      [
-         {
-            "a": "com:PayeeRule",
-            "com:destinationOwnerType": "<ps:Authority>",
-            "com:maximumRate": "10.00",
-            "com:rateContext":
-            [
-               "<com:Inclusive>",
-               "<com:Tax>",
-               "<com:TaxExempt>"
-            ],
-            "com:rateType": "<com:Percentage>"
-         }
-      ]
+      {
+         "a": "com:PayeeRule",
+         "com:destinationOwnerType": "<ps:Authority>",
+         "com:maximumRate": "10.00",
+         "com:rateContext":
+         [
+            "<com:Inclusive>",
+            "<com:Tax>",
+            "<com:TaxExempt>"
+         ],
+         "com:rateType": "<com:Percentage>"
+      }
    }
 ]
 

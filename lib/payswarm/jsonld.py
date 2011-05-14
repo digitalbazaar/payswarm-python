@@ -8,6 +8,7 @@ import json
 # The default context is defined by the JSON-LD specification
 RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 XSD_ANYURI = "http://www.w3.org/2001/XMLSchema#anyURI"
+XSD_INTEGER = "http://www.w3.org/2001/XMLSchema#integer"
 DEFAULT_CONTEXT = \
 { \
     "com": "http://purl.org/commerce#", \
@@ -42,8 +43,11 @@ DEFAULT_CONTEXT = \
         "http://purl.org/payswarm#license": \
             "http://www.w3.org/2001/XMLSchema#anyURI", \
         "http://purl.org/commerce#date": \
-            "http://www.w3.org/2001/XMLSchema#dateTime"
-        # FIXME: Type coercion is not happening for validFrom and validTo
+            "http://www.w3.org/2001/XMLSchema#dateTime", \
+        "http://purl.org/payswarm#validFrom": \
+            "http://www.w3.org/2001/XMLSchema#dateTime", \
+        "http://purl.org/payswarm#validTo": \
+            "http://www.w3.org/2001/XMLSchema#dateTime" \
     } \
 }
 
@@ -140,12 +144,12 @@ def _coerce_typed_literal(value, datatype):
     
     Returns a valid JSON-LD typed literal.
     """
-    rval = value
+    rval = str(value)
     dtstring = "^^<" + datatype + ">"
 
     # if the value doesn't end in the typed literal syntax, enclose it    
-    if(not value.endswith(dtstring)):
-        rval = value + dtstring
+    if(not rval.endswith(dtstring)):
+        rval = str(value) + dtstring
 
     return rval
 
@@ -170,7 +174,9 @@ def _coerce_types(data):
                     if(datatype == XSD_ANYURI):
                         coerce_iri = True
                     else:
-                        coerce_type = "<" + datatype + ">"
+                        coerce_type = datatype
+                elif(type(value) == type(0)):
+                    coerce_type = XSD_INTEGER
 
         # perform the coercion
         if(coerce_iri):
@@ -181,29 +187,64 @@ def _coerce_types(data):
                 # if array, coerce each item to an IRI
                 newarr = []
                 for item in value:
-                    if(type(item) == type({})):
-                        # FIXME: Type coercion is failing for arrays of objs
-                        _coerce_types(item)
-                        newarr.append(item)
-                    elif(type(value) == type("") or type(value) == type(u"")):
+                    if(type(item) == type("") or type(item) == type(u"")):
                         newarr.append(_coerce_iri(item))
                 data[key] = newarr
         elif(coerce_type != None):
             # FIXME: Type coercion is not happening for numbers
-            if(type(value) == type("") or type(value) == type(u"")):
+            if(type(value) == type("") or type(value) == type(u"") or
+               type(value) == type(0)):
                 # if string, coerce to a typed literal
                 data[key] = _coerce_typed_literal(value, coerce_type)
             elif(type(value) == type([])):
                 # if array, coerce each item to a typed literal
                 newarr = []
                 for item in value:
-                    if(type(item) == type({})):
-                        _coerce_types(item)
-                        newarr.append(item)
-                    elif(type(value) == type("") or type(value) == type(u"")):
+                    if(type(value) == type("") or type(value) == type(u"")):
                         newarr.append(_coerce_typed_literal(item, coerce_type))
-                    
-                data[key] = newarr
+                data[key] = _coerce_array(value)
+        elif(type(value) == type([])):
+            newarr = []
+            for item in value:
+                if(type(item) == type({})):
+                    # perform the coercion recursively on objecs
+                    _coerce_types(item)
+                    newarr.append(item)
+                elif(type(item) == type("") or type(item) == type(u"")):
+                    # copy string values directly
+                    newarr.append(item)
+            data[key] = newarr
+        elif(type(value) == type({})):
+            # coerce recursively on objects
+            _coerce_types(value)
+
+def _flatten(data):
+    """Flattens all embedded subjects into a top-level subject.
+
+    data - the given data object, which will have all of the objects
+        coerced into the proper normalized form.
+    """
+    rval = {"@": []}
+    flattened = copy.deepcopy(data)
+    embeds = []
+    
+    # FIXME: This algorithm is crap as it only goes down one level, and
+    # doesn't sort the contents of the arrays.
+    for key, value in flattened.items():
+        if(type(value) == type({})):
+            if(value.has_key("@")):
+                embeds.append(value)
+                flattened[key] = value["@"]
+
+    # if there are embeds, place them into the top-level array
+    if(len(embeds) > 0):
+        for embed in embeds:
+            rval["@"].append(embed)
+        rval["@"].append(flattened)
+    else:
+        rval = flattened
+    
+    return rval
 
 def normalize(arr):
     """Performs JSON-LD normalization of a given associative array.
@@ -216,11 +257,18 @@ def normalize(arr):
     rval = ""
     norm = copy.deepcopy(arr)
 
+    # expand all CURIEs into their final IRI form
     _expand_curies(norm)
+    #print "CURIES_EXPANDED:", json.dumps(norm, indent=3, sort_keys=True)
+    # perform type coercion on the types that should be coerced
     _coerce_types(norm)
-
-
+    #print "NORMALIZED:", json.dumps(norm, indent=3, sort_keys=True)
+    # move all embedded objects into the top-level object
+    norm = _flatten(norm)
+    #print "FLATTENED:", json.dumps(norm, indent=3, sort_keys=True)
+    
+    # sort the keys and compress the JSON
     rval = json.dumps(norm, sort_keys=True, separators=(',', ':'))
-    #print "NORMALIZED:", rval
+    
     return rval
 

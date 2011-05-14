@@ -63,12 +63,9 @@ def register_listing(config, signed_asset, listing):
 
     lc["@"] = "<" + storage_url + ">"    
     # Set all of the AUTOFILL variables
-    for p in lc["com:payee"]:
-        if("AUTOFILL" in p["@"]):
-            # FIXME: Need a better way of setting the payee. This method
-            # is bound to the dev.payswarm.com PaySwarm Authority software.
-            p["@"] = "<" + config.get("application", 
-                "preferences-url").replace("/preferences", "") + ">"
+    if(lc.has_key("com:payee")):
+        p = lc["com:payee"]
+        p["@"] = "<" + config.get("general", "listings-url") + p["@"] + ">"
         if("AUTOFILL" in p["com:destination"]):
             p["com:destination"] = \
                 "<" + config.get("application", "financial-account") + ">"
