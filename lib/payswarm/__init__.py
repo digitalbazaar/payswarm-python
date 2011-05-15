@@ -116,6 +116,8 @@ class PaySwarmClient(oauth.Client):
         authorize_url = self.config.get("general", "authorize-url")
         params = {
             "oauth_callback": "oob",
+            "currency": "USD",
+            "balance": "10.00",
             "scope": "payswarm-payment",
         }
 
@@ -197,6 +199,8 @@ class PaySwarmClient(oauth.Client):
 
         # write the registration token to the configuration
         self.config.set( \
+            "client", "payment-token", self.token.key)
+        self.config.set( \
             "client", "payment-token-secret", self.token.secret)
 
     def call(self, url, error_message, post_data=None):
@@ -248,6 +252,10 @@ class PaySwarmClient(oauth.Client):
         """
         self.token = oauth.Token(token, secret)
 
+    def clear_token(self):
+        """Clears the OAuth token information."""
+        self.token = None
+
     def purchase(self, listing_url, listing_hash):
         """Performs a purchase given a listing URL and a hash.
         
@@ -258,7 +266,7 @@ class PaySwarmClient(oauth.Client):
         """
         contracts_url = self.config.get("general", "contracts-url")
         post_data = \
-            { "listing_url": listing_url, "listing_hash": listing_hash }
+            { "listing": listing_url, "listing_hash": listing_hash }
         status = self.call(
             contracts_url, "Failed to purchase contract", post_data)
 

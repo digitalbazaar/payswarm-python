@@ -4,6 +4,7 @@
 import sys
 sys.path.insert(0, "lib")
 
+import hashlib
 import json
 from optparse import OptionParser
 import os
@@ -188,6 +189,7 @@ def _establish_payment_session(config, client):
     rval = False
     
     # Authorize the payment token, thus establishing a payment session
+    client.clear_token()
     url = client.generate_payment_session_url()
     sys.stdout.write( \
         "Go to the following URL and authorize the Payment Session:\n\n"
@@ -215,24 +217,30 @@ def _purchase(config, lfilename):
         not config.has_option("client", "payment-token-secret")):
         _establish_payment_session(config, client)
     else:
-        client.set_token(config.has_option("client", "payment-token"),
-            config.has_option("client", "payment-token-secret"))
+        client.set_token(config.get("client", "payment-token"),
+            config.get("client", "payment-token-secret"))
 
-    # attempt the purchase
-    try:
-        lfile = open(lfilename, "r")
-        ldata = json.loads(lfile.read())
-        asset = payswarm.storage.populate_asset(config, ldata[0])
-        listing = payswarm.storage.populate_listing(config, asset, ldata[1])
-    
-        listing_url = listing["@"]
-        listing_hash = \
-            hashlib.sha1(payswarm.jsonld.normalize(listing)).hexdigest()
-    
-        client.purchase(listing_url, listing_hash)
-    except Exception, e:
-        sys.stderr.write("Error: Failed to purchase listing - ")
-        sys.stderr.write(str(e) + "\n")
+    # read the listing information from the file
+    lfile = open(lfilename, "r")
+    ldata = json.loads(lfile.read())
+    asset = payswarm.storage.populate_asset(config, ldata[0])
+    listing = payswarm.storage.populate_listing(config, asset, ldata[1])
+
+    # retrieve the listing URL and the hash
+    listing_url = listing["@"].lstrip("<").rstrip(">")
+    listing_hash = \
+        hashlib.sha1(payswarm.jsonld.normalize(listing)).hexdigest()
+
+    # attempt to purchase the listing
+    attempts = 0 
+    while(attempts < 3):
+        try:
+            client.purchase(listing_url, listing_hash)
+        except Exception, e:
+            sys.stderr.write("Error: %s" % e)
+            attempts += 1
+            if(attempts < 3):
+                _establish_payment_session(config, client)
 
 if __name__ == "__main__":
     # Get the options from the command line

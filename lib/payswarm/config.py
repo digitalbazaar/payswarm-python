@@ -43,13 +43,10 @@ def parse(defaults, options):
     config = ConfigParser()
     config.read(cfiles)
 
-    # add the general section if it doesn't already exist
-    if(not config.has_section("general")):
-        config.add_section("general")
-
-    # add the application section if it doesn't already exist
-    if(not config.has_section("application")):
-        config.add_section("application")
+    # create each application section if it doesn't already exist in the config
+    for section in ["general", "application", "client"]:
+        if(not config.has_section(section)):
+            config.add_section(section)
 
     # Update the configuration with the command line options, if the
     # options are different from the default or if the config doesn't
