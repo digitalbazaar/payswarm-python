@@ -178,6 +178,62 @@ def _register(config, lfilename):
         sys.stderr.write("Error: Failed to parse %s as JSON-LD\n" % lfilename)
         sys.stderr.write(str(e) + "\n")
 
+def _establish_payment_session(config, client):
+    """Requests a new Payment Session with the PaySwarm Authority.
+    
+    client - the OAuth client to use to establish the session.
+    
+    Returns True if a session was established, False otherwise.
+    """
+    rval = False
+    
+    # Authorize the payment token, thus establishing a payment session
+    url = client.generate_payment_session_url()
+    sys.stdout.write( \
+        "Go to the following URL and authorize the Payment Session:\n\n"
+        "   %s\n\n" % url)
+    verifier = _ask("Enter the verification key:")
+    client.authorize_payment_session(verifier)
+    payswarm.config.save(config)
+    rval = True
+        
+    return rval
+
+def _purchase(config, lfilename):
+    """Performs PaySwarm purchase given a config and listing filename.
+
+    config - the configuration to use when configuring the PaySwarm client.
+    lfilename - the name of the listing file to use when generating the
+        purchase request.
+    """
+    client_id = config.get("application", "client-id")
+    client_secret = config.get("application", "client-secret")
+    client = payswarm.PaySwarmClient(config, client_id, client_secret)
+
+    # ensure that there is an active payment session in place
+    if(not config.has_option("client", "payment-token") or  \
+        not config.has_option("client", "payment-token-secret")):
+        _establish_payment_session(config, client)
+    else:
+        client.set_token(config.has_option("client", "payment-token"),
+            config.has_option("client", "payment-token-secret"))
+
+    # attempt the purchase
+    try:
+        lfile = open(lfilename, "r")
+        ldata = json.loads(lfile.read())
+        asset = payswarm.storage.populate_asset(config, ldata[0])
+        listing = payswarm.storage.populate_listing(config, asset, ldata[1])
+    
+        listing_url = listing["@"]
+        listing_hash = \
+            hashlib.sha1(payswarm.jsonld.normalize(listing)).hexdigest()
+    
+        client.purchase(listing_url, listing_hash)
+    except Exception, e:
+        sys.stderr.write("Error: Failed to purchase listing - ")
+        sys.stderr.write(str(e) + "\n")
+
 if __name__ == "__main__":
     # Get the options from the command line
     options = _parse_options()
@@ -193,9 +249,13 @@ if __name__ == "__main__":
                 _register(config, options.args[-1])
             else:
                 sys.stderr.write("Error: You must specify a listing file "
-                    "ending in .jsonld\n")
+                    "ending in .jsonld to register\n")
         elif(command == "purchase"):
-            pass
+            if(options.args[-1].endswith(".jsonld")):
+                _purchase(config, options.args[-1])
+            else:
+                sys.stderr.write("Error: You must specify a listing file "
+                    "ending in .jsonld for the purchase.\n")
         elif(command == "receipt"):
             pass
 

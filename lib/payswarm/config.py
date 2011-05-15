@@ -16,7 +16,7 @@ PSW_KEYS = "http://purl.org/payswarm/webservices#oAuthKeys"
 # FIXME: This is an error below - should be payswarm#account
 PS_ACCOUNT = "http://purl.org/payswarm/#account"
 PS_LICENSE_HASH = "http://purl.org/payswarm#licenseHash"
-PSP_LICENSE = "http://purl.org/payswarm/preferences#license" 
+PSP_LICENSE = "http://purl.org/payswarm/preferences#license"
 
 def _update_config(defaults, config, options, section, name):
     """"

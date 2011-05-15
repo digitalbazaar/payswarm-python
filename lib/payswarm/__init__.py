@@ -2,16 +2,17 @@
 such as registering with a PaySwarm Authority, generating public/private 
 keys, digitally signing and registering assets for sale, registering listings, 
 establishing Payment Sessions and performing purchases."""
+import config
 import json
+import jsonld
 import oauth2 as oauth
 import os
-import urlparse
-import config
-import storage
-import jsonld
+import purchase
 import signature
+import storage
+import urlparse
 
-__all__ = ["config", "storage", "jsonld", "signature"]
+__all__ = ["config", "jsonld", "purchase", "signature", "storage"]
 
 class PaySwarmClient(oauth.Client):
     """The PaySwarm Client is used to communicate with any PaySwarm system."""
@@ -98,6 +99,42 @@ class PaySwarmClient(oauth.Client):
 
         return rval
 
+    def generate_payment_session_url(self):
+        """Requests a payment token and returns a verification URL.
+
+        Performs the first part of what is called an Out-Of-Band OAuth 
+        verification. This type of verification is needed when operating 
+        outside of a Web User Agent environment. 
+
+        OAuth relies heavily on re-directs, if a re-direct mechanism isn't 
+        available, all that can be done is to ask the person using the 
+        application to go to a particular URL.
+
+        Throws an exception if anything nasty happens.
+        """
+        request_url = self.config.get("general", "request-url")
+        authorize_url = self.config.get("general", "authorize-url")
+        params = {
+            "oauth_callback": "oob",
+            "scope": "payswarm-payment",
+        }
+
+        # Request a new registration token
+        response, content = self.request(request_url, "POST", parameters=params)
+        self._check_response(response, content, 
+            "Error: Failed to request a temporary registration token.")
+
+        # Extract the registration token information
+        self.token = oauth.Token.from_string(content)
+
+        # Write the registration token to the configuration
+        self.config.set("client", "payment-token", self.token.key)
+
+        # Build the registration URL
+        rval = authorize_url + "?oauth_token=%s" % self.token.key
+
+        return rval
+
     def complete_registration(self, verifier):
         """Completes the retrieval of a registration token.
 
@@ -129,6 +166,38 @@ class PaySwarmClient(oauth.Client):
         # write the registration token to the configuration
         self.config.set( \
             "application", "registration-secret", self.token.secret)
+
+    def authorize_payment_session(self, verifier):
+        """Completes the retrieval of a payment token.
+
+        Performs the second part of what is called an Out-Of-Band OAuth 
+        verification. This type of verification is needed when operating 
+        outside of a Web User Agent environment. 
+
+        OAuth relies heavily on re-directs, if a re-direct mechanism isn't 
+        available, all that can be done is to ask the person using the 
+        application to go to a particular URL. This step happens after the
+        person has gone to the URL and verified the payment session
+        request. They are given a verifier, which is given as input to this
+        method.
+
+        verifier - the verifier provided to the person after approving the
+            payment token.
+
+        Throws an exception if anything nasty happens.
+        """
+        tokens_url = self.config.get("general", "tokens-url")
+        self.token.set_verifier(verifier)
+
+        # get the registration token and secret
+        response, content = self.request(tokens_url, "GET")
+        self._check_response(response, content, 
+            "Error: Failed to request a payment token.")
+        self.token = oauth.Token.from_string(content)
+
+        # write the registration token to the configuration
+        self.config.set( \
+            "client", "payment-token-secret", self.token.secret)
 
     def call(self, url, error_message, post_data=None):
         """Performs a call against a URL using OAuth credentials.
@@ -171,50 +240,25 @@ class PaySwarmClient(oauth.Client):
         public_key_url = info["@"].lstrip("<").rstrip(">")
         self.config.set("application", "public-key-url", public_key_url)
 
-    def get_request_token(self):
-        logging.debug("Get request token")
-        params = {
-            "oauth_callback": CALLBACK_URL,
-            "currency": "USD",
-            "balance": "2.00",
-            "scope": "payswarm-payment",
-        }
-        resp, content = self.request(self.authority.request_url, "POST",
-                parameters=params)
-        self._check_response(resp, content, "Token request failure.")
+    def set_token(self, token, secret):
+        """Sets the token information directly.
+        
+        token - the token string.
+        secret - the secret associated with the token.
+        """
+        self.token = oauth.Token(token, secret)
 
-        #print "\n*** Request ***"
-        #logging.debug("resp")
-        self.token = oauth.Token.from_string(content)
-        #print dict(urlparse.parse_qsl(self.token))
-        return self.token
-
-    def get_payment_token(self):
-        resp, content = self.request(self.authority.access_url, "POST")
-        self._check_response(resp, content, "Payment token request failure.")
-        self.token = oauth.Token.from_string(content)
-        print "PAYMENT TOKEN", self.token.key, self.token.secret
-        return self.token
-
-    def _contracts_request(self, listing_url, listing_hash, verify=False):
-        method = "GET"
-        params = {}
-        if verify:
-            # FIXME: Implement asset verification
-            print "_contracts_request(): VERIFY NOT IMPLEMENTED!"
-        else:
-            method = "POST"
-            params["listing"] = listing_url
-            params["listing_hash"] = listing_hash
-        resp, content = self.request(
-            self.authority.contracts_url, method, parameters=params)
-        msg = "Verify failure." if verify else "Purchase failure."
-        self._check_response(resp, content, msg)
-        return self._decode_response(resp, content)
-
-    def purchase(self, listing_url, listing_hash, verify_only=False):
-        return self._contracts_request(listing_url, listing_hash, verify=False)
-
-    def verify(self):
-        return self._contracts_request(verify=True)
+    def purchase(self, listing_url, listing_hash):
+        """Performs a purchase given a listing URL and a hash.
+        
+        listing_url - the listing to purchase.
+        listing_hash - the listing hash to provide a means of ensuring that
+            the listing URL provided is the one that is intended to be 
+            purchased.
+        """
+        contracts_url = self.config.get("general", "contracts-url")
+        post_data = \
+            { "listing_url": listing_url, "listing_hash": listing_hash }
+        status = self.call(
+            contracts_url, "Failed to purchase contract", post_data)
 

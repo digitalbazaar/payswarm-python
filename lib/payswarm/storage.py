@@ -7,6 +7,28 @@ import signature
 import time
 import urllib2
 
+def populate_asset(config, asset):
+    """Populates an asset with the provider, authority and content URLs.
+    
+    config - the configuration to read the asset URLs from.
+    asset - the asset to modify.
+    
+    Returns an updated asset.
+    """
+    rval = copy.deepcopy(asset)
+    storage_url = config.get("general", "listings-url") + asset["@"]
+    
+    rval["@"] = "<" + storage_url + ">"
+    # FIXME: Need a better way of setting the asset provider. This method
+    # is bound to the dev.payswarm.com PaySwarm Authority software.
+    rval["ps:assetProvider"] = \
+        "<" + config.get("application", 
+            "preferences-url").replace("/preferences", "") + ">"
+    rval["ps:authority"] = "<" + config.get("general", "config-url") + ">"
+    rval["ps:contentUrl"] = "<" + storage_url + ">"
+
+    return rval
+
 def register_asset(config, asset):
     """Digitally signs the given asset and stores it on the listings service.
 
@@ -19,30 +41,59 @@ def register_asset(config, asset):
     """
     storage_url = config.get("general", "listings-url") + asset["@"]
 
-    # Fill out the config-based information in the asset copy
-    ac = copy.deepcopy(asset)
-    
-    ac["@"] = "<" + storage_url + ">"
-    # FIXME: Need a better way of setting the asset provider. This method
-    # is bound to the dev.payswarm.com PaySwarm Authority software.
-    ac["ps:assetProvider"] = \
-        "<" + config.get("application", 
-            "preferences-url").replace("/preferences", "") + ">"
-    ac["ps:authority"] = \
-        "<" + config.get("general", "config-url") + ">"
-    ac["ps:contentUrl"] = \
-        "<" + storage_url + ">"
+    # fill out the config-based information in the asset
+    populated_asset = populate_asset(config, asset)
 
-    # Digitally sign the asset
-    sa = signature.sign(config, ac)
+    # digitally sign the asset
+    sa = signature.sign(config, populated_asset)
 
-    # Upload the asset
+    # upload the asset
     req = urllib2.Request(storage_url,
         headers = { "Content-Type": "application/json" },
         data = json.dumps(sa, sort_keys = True, indent = 3))
     urllib2.urlopen(req)
     
     return sa
+
+def populate_listing(config, asset, listing):
+    """Populates a listing with the asset, license and validity information.
+    
+    config - the configuration to read the listing data from.
+    listing - the listing to modify.
+    
+    Returns an updated listing.
+    """
+    rval = copy.deepcopy(listing)
+    storage_url = config.get("general", "listings-url") + listing["@"]
+    
+    rval["@"] = "<" + storage_url + ">"    
+    # Set all of the AUTOFILL variables
+    if(rval.has_key("com:payee")):
+        p = rval["com:payee"]
+        p["@"] = "<" + config.get("general", "listings-url") + p["@"] + ">"
+        if("AUTOFILL" in p["com:destination"]):
+            p["com:destination"] = \
+                "<" + config.get("application", "financial-account") + ">"
+
+    # clear the asset of any signature information
+    asset = copy.deepcopy(asset)
+    if(asset.has_key("sig:signature")):
+        del asset["sig:signature"]
+
+    # Set the necessary asset/license variables
+    rval["ps:asset"] = asset["@"]
+    rval["ps:assetHash"] = hashlib.sha1(jsonld.normalize(asset)).hexdigest()
+    rval["ps:license"] = \
+        "<" + config.get("application", "default-license") + ">"
+    rval["ps:licenseHash"] = \
+        config.get("application", "default-license-hash")
+    rval["ps:validFrom"] = \
+        time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    rval["ps:validUntil"] = \
+        time.strftime("%Y-%m-%dT%H:%M:%SZ", 
+            time.gmtime(time.time() + 60*60*24))
+
+    return rval
 
 def register_listing(config, signed_asset, listing):
     """Digitally signs the given listing, storing it on the listings service.
@@ -58,34 +109,12 @@ def register_listing(config, signed_asset, listing):
     """
     # Fill out the config-based information in the given listing
     storage_url = config.get("general", "listings-url") + listing["@"]
-    lc = copy.deepcopy(listing)
-    asset = copy.deepcopy(signed_asset)
-    del asset["sig:signature"]
-
-    lc["@"] = "<" + storage_url + ">"    
-    # Set all of the AUTOFILL variables
-    if(lc.has_key("com:payee")):
-        p = lc["com:payee"]
-        p["@"] = "<" + config.get("general", "listings-url") + p["@"] + ">"
-        if("AUTOFILL" in p["com:destination"]):
-            p["com:destination"] = \
-                "<" + config.get("application", "financial-account") + ">"
-
-    # Set the necessary asset/license variables
-    lc["ps:asset"] = asset["@"]
-    lc["ps:assetHash"] = hashlib.sha1(jsonld.normalize(asset)).hexdigest()
-    lc["ps:license"] = \
-        "<" + config.get("application", "default-license") + ">"
-    lc["ps:licenseHash"] = \
-        config.get("application", "default-license-hash")
-    lc["ps:validFrom"] = \
-        time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    lc["ps:validUntil"] = \
-        time.strftime("%Y-%m-%dT%H:%M:%SZ", 
-            time.gmtime(time.time() + 60*60*24))
+    
+    # populate the listing
+    populated_listing = populate_listing(config, signed_asset, listing)
 
     # Digitally sign the listing
-    sl = signature.sign(config, lc)
+    sl = signature.sign(config, populated_listing)
 
     # Upload the listing
     req = urllib2.Request(storage_url,
