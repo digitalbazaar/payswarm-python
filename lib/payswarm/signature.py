@@ -30,7 +30,7 @@ def sign(config, item):
 
     rval["sig:signature"] = \
     {
-        "a": "<sig:JsonldSignature>",
+        "a": "sig:JsonldSignature",
         "dc:created": created,
         "dc:creator": "<" + config.get("application", "public-key-url") + ">",
         "sig:signatureValue": signature,

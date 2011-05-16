@@ -18,7 +18,7 @@ def populate_asset(config, asset):
     rval = copy.deepcopy(asset)
     storage_url = config.get("general", "listings-url") + asset["@"]
     
-    rval["@"] = "<" + storage_url + ">"
+    rval["@"] = storage_url
     # FIXME: Need a better way of setting the asset provider. This method
     # is bound to the dev.payswarm.com PaySwarm Authority software.
     rval["ps:assetProvider"] = \
@@ -66,11 +66,11 @@ def populate_listing(config, asset, listing):
     rval = copy.deepcopy(listing)
     storage_url = config.get("general", "listings-url") + listing["@"]
     
-    rval["@"] = "<" + storage_url + ">"    
+    rval["@"] = storage_url
     # Set all of the AUTOFILL variables
     if(rval.has_key("com:payee")):
         p = rval["com:payee"]
-        p["@"] = "<" + config.get("general", "listings-url") + p["@"] + ">"
+        p["@"] = config.get("general", "listings-url") + p["@"]
         if("AUTOFILL" in p["com:destination"]):
             p["com:destination"] = \
                 "<" + config.get("application", "financial-account") + ">"
@@ -81,7 +81,7 @@ def populate_listing(config, asset, listing):
         del asset["sig:signature"]
 
     # Set the necessary asset/license variables
-    rval["ps:asset"] = asset["@"]
+    rval["ps:asset"] = "<" + asset["@"] + ">"
     rval["ps:assetHash"] = hashlib.sha1(jsonld.normalize(asset)).hexdigest()
     rval["ps:license"] = \
         "<" + config.get("application", "default-license") + ">"
