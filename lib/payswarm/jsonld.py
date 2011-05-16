@@ -80,6 +80,10 @@ def _expand_curies(data):
     """
     # Expand all of the properties first
     for key, value in data.items():
+        # FIXME: add proper context handling
+        # for now, always remove the context
+        if(key == "#"):
+            del data["#"]
         if(key == "a"):
             data["<" + RDF_TYPE + ">"] = value
             del data[key]

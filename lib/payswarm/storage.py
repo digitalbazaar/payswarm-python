@@ -22,10 +22,10 @@ def populate_asset(config, asset):
     # FIXME: Need a better way of setting the asset provider. This method
     # is bound to the dev.payswarm.com PaySwarm Authority software.
     rval["ps:assetProvider"] = \
-        "<" + config.get("application", 
-            "preferences-url").replace("/preferences", "") + ">"
-    rval["ps:authority"] = "<" + config.get("general", "config-url") + ">"
-    rval["ps:contentUrl"] = "<" + storage_url + ">"
+        config.get("application", 
+            "preferences-url").replace("/preferences", "")
+    rval["ps:authority"] = config.get("general", "config-url")
+    rval["ps:contentUrl"] = storage_url
 
     return rval
 
@@ -73,18 +73,13 @@ def populate_listing(config, asset, listing):
         p["@"] = config.get("general", "listings-url") + p["@"]
         if("AUTOFILL" in p["com:destination"]):
             p["com:destination"] = \
-                "<" + config.get("application", "financial-account") + ">"
-
-    # clear the asset of any signature information
-    asset = copy.deepcopy(asset)
-    if(asset.has_key("sig:signature")):
-        del asset["sig:signature"]
+                config.get("application", "financial-account")
 
     # Set the necessary asset/license variables
-    rval["ps:asset"] = "<" + asset["@"] + ">"
+    rval["ps:asset"] = asset["@"]
     rval["ps:assetHash"] = hashlib.sha1(jsonld.normalize(asset)).hexdigest()
     rval["ps:license"] = \
-        "<" + config.get("application", "default-license") + ">"
+        config.get("application", "default-license")
     rval["ps:licenseHash"] = \
         config.get("application", "default-license-hash")
     rval["ps:validFrom"] = \
