@@ -56,7 +56,7 @@ def _parse_options():
     options.args = args
 
     # Check to make sure that there are enough options
-    if(len(options.args) < 1):
+    if(not options.args):
         sys.stderr.write( \
             "ERROR: You must provide at least one command to execute.\n")
         parser.print_help()
@@ -79,18 +79,18 @@ def _ask(question, config=None, section=None, name=None):
         default = config.get(section, name)
 
     # Attempt to get the option from the command line
-    while(len(rval) < 1):
-        if(len(default) > 0):
+    while(not rval):
+        if(default):
             sys.stdout.write(question + " [Default: %s] " % default)
             sys.stdout.flush()
             rval = sys.stdin.readline().strip()
-            if(len(rval) < 1):
+            if(not rval):
                 rval = default
         else:
             sys.stdout.write(question + " ")
             sys.stdout.flush()
             rval = sys.stdin.readline().strip()
-            if(len(rval) < 1):
+            if(not rval):
                 sys.stdout.write("Warning: You must enter something.\n")
                 sys.stdout.flush()
 

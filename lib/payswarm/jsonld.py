@@ -265,7 +265,7 @@ def _flatten(data):
     # if there are embeds, place them into the top-level array
     # FIXME: For some reason, this breaks how resources are stored on the
     # PaySwarm Authority
-    if(len(embeds) > 0):
+    if(embeds):
         for embed in embeds:
             rval["@"].append(embed)
         rval["@"].append(flattened)
