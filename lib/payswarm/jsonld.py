@@ -123,27 +123,27 @@ def _expand_curies(data):
     # Expand all of the objects second
     for key, value in data.items():
         # expand all of the object CURIEs next
-        if(type(value) == type({})):
+        if(isinstance(value, dict)):
             # recursively expand the CURIEs for the value if it is an object
             _expand_curies(value)
-        elif(type(value) == type([])):
+        elif(isinstance(value, list)):
             # expand all CURIEs contained in arrays
             newarr = []
             for item in value:
                 # expand all string values of concern
-                if(type(item) == type("") or type(item) == type(u"")):
+                if(isinstance(item, (str, unicode))):
                     if((RDF_TYPE in key) \
                         or (item.startswith("<") and item.endswith(">"))):
                             iri = _expand_curie(item)
                             newarr.append(iri)
                     else:
                         newarr.append(item)
-                elif(type(item) == type({})):
+                elif(isinstance(item, dict)):
                     # expand objects recursively and add them to the newarr
                     _expand_curies(item)
                     newarr.append(item)
             data[key] = newarr
-        elif(type(value) == type("") or type(value) == type(u"")):
+        elif(isinstance(value, (str, unicode))):
             # expand string values that are either types or CURIEs
             if((RDF_TYPE in key) or \
                 (value.startswith("<") and value.endswith(">"))):
@@ -203,45 +203,44 @@ def _coerce_types(data):
                         coerce_iri = True
                     else:
                         coerce_type = datatype
-                elif(type(value) == type(0)):
+                elif(isinstance(value, int)):
                     coerce_type = XSD_INTEGER
 
         # perform the coercion
         if(coerce_iri):
-            if(type(value) == type("") or type(value) == type(u"")):
+            if(isinstance(value, (str, unicode))):
                 # if string, coerce to an IRI
                 data[key] = _coerce_iri(value)
-            elif(type(value) == type([])):
+            elif(isinstance(value, list)):
                 # if array, coerce each item to an IRI
                 newarr = []
                 for item in value:
-                    if(type(item) == type("") or type(item) == type(u"")):
+                    if(isinstance(item, (str, unicode))):
                         newarr.append(_coerce_iri(item))
                 data[key] = newarr
         elif(coerce_type != None):
-            if(type(value) == type("") or type(value) == type(u"") or
-               type(value) == type(0)):
+            if(isinstance(value, (str, unicode, int))):
                 # if string, coerce to a typed literal
                 data[key] = _coerce_typed_literal(value, coerce_type)
-            elif(type(value) == type([])):
+            elif(isinstance(value, list)):
                 # if array, coerce each item to a typed literal
                 newarr = []
                 for item in value:
-                    if(type(value) == type("") or type(value) == type(u"")):
+                    if(isinstance(value, (str, unicode))):
                         newarr.append(_coerce_typed_literal(item, coerce_type))
                 data[key] = _coerce_array(value)
-        elif(type(value) == type([])):
+        elif(isinstance(value, list)):
             newarr = []
             for item in value:
-                if(type(item) == type({})):
+                if(isinstance(item, dict)):
                     # perform the coercion recursively on objecs
                     _coerce_types(item)
                     newarr.append(item)
-                elif(type(item) == type("") or type(item) == type(u"")):
+                elif(isinstance(item, (str, unicode))):
                     # copy string values directly
                     newarr.append(item)
             data[key] = newarr
-        elif(type(value) == type({})):
+        elif(isinstance(value, dict)):
             # coerce recursively on objects
             _coerce_types(value)
 
@@ -258,7 +257,7 @@ def _flatten(data):
     # FIXME: This algorithm is crap as it only goes down one level, and
     # doesn't sort the contents of the arrays.
     for key, value in flattened.items():
-        if(type(value) == type({})):
+        if(isinstance(value, dict)):
             if(value.has_key("@")):
                 embeds.append(value)
                 flattened[key] = value["@"]
