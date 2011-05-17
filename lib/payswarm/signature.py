@@ -22,7 +22,10 @@ def sign(config, item):
     # Generate the signature creation time
     created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
-    # Generate the signature    
+    # Generate the signature
+    #print "PRE-SIG ITEM:\n", jsonld.normalize(rval)
+    #print "PRE-SIG SHA1:", hashlib.sha1(jsonld.normalize(rval)).hexdigest()
+
     sha1 = hashlib.sha1(jsonld.normalize(item)).hexdigest()
     key = RSA.importKey(config.get("application", "private-key"))
     sig_bytes = long_to_bytes(key.sign(sha1, '')[0])
@@ -36,8 +39,8 @@ def sign(config, item):
         "sig:signatureValue": signature,
     }
 
-    #print "NORMALIZED ITEM:\n", jsonld.normalize(rval)
-    #print "NORMALIZED SHA1:", hashlib.sha1(jsonld.normalize(rval)).hexdigest()
+    #print "POST-SIG ITEM:\n", jsonld.normalize(rval)
+    #print "POST-SIG SHA1:", hashlib.sha1(jsonld.normalize(rval)).hexdigest()
     
     return rval
 
