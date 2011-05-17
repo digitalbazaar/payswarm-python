@@ -169,7 +169,7 @@ def _register(config, lfilename):
         sys.stdout.write("Registering asset:")
         signed_asset = payswarm.storage.register_asset(config, asset)
         sys.stdout.write(" %s\n" % signed_asset["@"])
-
+        
         # Register the loaded listing
         sys.stdout.write("Registering listing:")
         signed_listing = payswarm.storage.register_listing(\
@@ -223,14 +223,18 @@ def _purchase(config, lfilename):
     # read the listing information from the file
     lfile = open(lfilename, "r")
     ldata = json.loads(lfile.read())
-    asset = payswarm.storage.populate_asset(config, ldata[0])
-    listing = payswarm.storage.populate_listing(config, asset, ldata[1])
+    listing = payswarm.storage.fetch_listing(config, ldata[1])
 
-    # retrieve the listing URL and the hash
-    listing_url = listing["@"].lstrip("<").rstrip(">")
+    # calculate the listing hash from the retrieved listing
+    # FIXME: The issue with calculating the listing hash in this way is
+    # that an invalid listing hash will never be a possibility. The
+    # listing hash will always be valid, even if it is changed without
+    # the client's knowledge, which could result in a purchase of 
+    # something that the client didn't intend to purchase.
+    listing_url = listing["@"]
     listing_hash = \
         hashlib.sha1(payswarm.jsonld.normalize(listing)).hexdigest()
-
+    
     # attempt to purchase the listing
     attempts = 0 
     while(attempts < 3):

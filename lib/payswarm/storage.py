@@ -47,6 +47,10 @@ def register_asset(config, asset):
     # digitally sign the asset
     sa = signature.sign(config, populated_asset)
 
+    # include the default context if necessary
+    if(not sa.has_key("#")):
+        sa["#"] = jsonld.FAKE_DEFAULT_CONTEXT
+
     # upload the asset
     req = urllib2.Request(storage_url,
         headers = { "Content-Type": "application/json" },
@@ -54,6 +58,22 @@ def register_asset(config, asset):
     urllib2.urlopen(req)
     
     return sa
+
+def fetch_listing(config, listing):
+    """Fetches the listing from the Listings service URL.
+    
+    config - the configuration to read the listing data from.
+    listing - an object containing a '@' key, which will be combined with the
+        listings-url to create a URL. That URL will be used to fetch the
+        listing.
+    """
+    rval = None
+    storage_url = config.get("general", "listings-url") + listing["@"]
+
+    # retrieve the listing
+    rval = json.loads(urllib2.urlopen(storage_url).read())
+
+    return rval
 
 def populate_listing(config, asset, listing):
     """Populates a listing with the asset, license and validity information.
@@ -110,6 +130,10 @@ def register_listing(config, signed_asset, listing):
 
     # Digitally sign the listing
     sl = signature.sign(config, populated_listing)
+
+    # include the default context if necessary
+    if(not sl.has_key("#")):
+        sl["#"] = jsonld.FAKE_DEFAULT_CONTEXT
 
     # Upload the listing
     req = urllib2.Request(storage_url,

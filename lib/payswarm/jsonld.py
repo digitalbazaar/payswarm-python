@@ -43,13 +43,37 @@ DEFAULT_CONTEXT = \
         "http://purl.org/payswarm#license": \
             "http://www.w3.org/2001/XMLSchema#anyURI", \
         "http://purl.org/commerce#date": \
-            "http://www.w3.org/2001/XMLSchema#dateTime", \
-        "http://purl.org/payswarm#validFrom": \
-            "http://www.w3.org/2001/XMLSchema#dateTime", \
-        "http://purl.org/payswarm#validTo": \
             "http://www.w3.org/2001/XMLSchema#dateTime" \
     } \
 }
+
+# FIXME: This default context is used when uploading to overcome a limitation
+# of the reference PaySwarm Authority implementation.
+FAKE_DEFAULT_CONTEXT = { \
+         "#types": { \
+            "com:date": "xsd:dateTime", \
+            "com:destination": "xsd:anyURI", \
+            "com:payeePosition": "xsd:integer", \
+            "dc:created": "xsd:dateTime", \
+            "dc:creator": "xsd:anyURI", \
+            "ps:asset": "xsd:anyURI", \
+            "ps:assetProvider": "xsd:anyURI", \
+            "ps:authority": "xsd:anyURI", \
+            "ps:contentUrl": "xsd:anyURI", \
+            "ps:license": "xsd:anyURI" \
+         }, \
+         "com": "http://purl.org/commerce#", \
+         "dc": "http://purl.org/dc/terms/", \
+         "foaf": "http://xmlns.org/foaf/0.1/", \
+         "gr": "http://purl.org/goodrelations/v1#", \
+         "ps": "http://purl.org/payswarm#", \
+         "psp": "http://purl.org/payswarm/preferences#", \
+         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#", \
+         "rdfs": "http://www.w3.org/2000/01/rdf-schema#", \
+         "sig": "http://purl.org/signature#", \
+         "vcard": "http://www.w3.org/2006/vcard/ns#", \
+         "xsd": "http://www.w3.org/2001/XMLSchema#" \
+      }
 
 def _expand_curie(curie):
     """Expands a single CURIE or returns the unexpanded value back.
@@ -195,7 +219,6 @@ def _coerce_types(data):
                         newarr.append(_coerce_iri(item))
                 data[key] = newarr
         elif(coerce_type != None):
-            # FIXME: Type coercion is not happening for numbers
             if(type(value) == type("") or type(value) == type(u"") or
                type(value) == type(0)):
                 # if string, coerce to a typed literal
@@ -241,6 +264,8 @@ def _flatten(data):
                 flattened[key] = value["@"]
 
     # if there are embeds, place them into the top-level array
+    # FIXME: For some reason, this breaks how resources are stored on the
+    # PaySwarm Authority
     if(len(embeds) > 0):
         for embed in embeds:
             rval["@"].append(embed)

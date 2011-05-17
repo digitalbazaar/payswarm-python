@@ -35,6 +35,9 @@ def sign(config, item):
         "dc:creator": config.get("application", "public-key-url"),
         "sig:signatureValue": signature,
     }
+
+    #print "NORMALIZED ITEM:\n", jsonld.normalize(rval)
+    #print "NORMALIZED SHA1:", hashlib.sha1(jsonld.normalize(rval)).hexdigest()
     
     return rval
 
