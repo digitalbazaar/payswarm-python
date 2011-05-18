@@ -6,6 +6,12 @@ registering with a PaySwarm Authority, generating public/private keys,
 digitally signing and registering assets for sale, registering listings,
 establishing Payment Sessions and performing purchases.
 
+Requirements
+------------
+
+ * python (2.5 or later)
+ * python-m2crypto (0.20.1 or later)
+
 Usage
 -----
 

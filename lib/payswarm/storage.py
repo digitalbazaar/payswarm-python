@@ -59,16 +59,16 @@ def register_asset(config, asset):
     
     return sa
 
-def fetch_listing(config, listing):
-    """Fetches the listing from the Listings service URL.
+def fetch(config, item):
+    """Fetches the given item from the Listings service URL.
     
     config - the configuration to read the listing data from.
-    listing - an object containing a '@' key, which will be combined with the
+    item - an object containing a '@' key, which will be combined with the
         listings-url to create a URL. That URL will be used to fetch the
-        listing.
+        item.
     """
     rval = None
-    storage_url = config.get("general", "listings-url") + listing["@"]
+    storage_url = config.get("general", "listings-url") + item["@"]
 
     # retrieve the listing
     rval = json.loads(urllib2.urlopen(storage_url).read())

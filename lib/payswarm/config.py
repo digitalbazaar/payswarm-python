@@ -1,6 +1,6 @@
 """The PaySwarm configuration module is used to read/write configs."""
 from ConfigParser import ConfigParser
-from Crypto.PublicKey import RSA
+import M2Crypto
 import json
 import os.path
 import urllib2
@@ -178,11 +178,20 @@ def generate_keys(config):
     config - the config to write the new keypair to. The public key is stored
         in the [general] section under 'public-key'. The private key is
         stored in the [general] section under 'private-key'."""
-
-    private_key = RSA.generate(1024)
-    public_key  = private_key.publickey()
-    private_pem = private_key.exportKey()
+    # create buffers to hold the key data
+    private_bio = M2Crypto.BIO.MemoryBuffer()
+    public_bio = M2Crypto.BIO.MemoryBuffer()
     
+    # generate the public/private keypair
+    key_pair = M2Crypto.RSA.gen_key(1024, 65537)
+    
+    # export public and private key to PEM format
+    key_pair.save_key_bio(private_bio, cipher=None)
+    key_pair.save_pub_key_bio(public_bio)
+    private_pem = private_bio.read().strip()
+    public_pem = public_bio.read().strip()
+    
+    # save the key data into the configuration file
     config.set("application", "private-key", private_pem)
-    config.set("application", "public-key", public_key.exportKey())
+    config.set("application", "public-key", public_pem)
 

@@ -264,9 +264,13 @@ class PaySwarmClient(oauth.Client):
             the listing URL provided is the one that is intended to be 
             purchased.
         """
+        rval = None
+        
         contracts_url = self.config.get("general", "contracts-url")
         post_data = \
             { "listing": listing_url, "listing_hash": listing_hash }
-        status = self.call(
+        rval = self.call(
             contracts_url, "Failed to purchase contract", post_data)
+
+        return rval
 

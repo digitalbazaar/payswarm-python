@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 #
 # Performs a number of PaySwarm client commands.
-import sys
-sys.path.insert(0, "lib")
-
 import hashlib
 import json
 from optparse import OptionParser
 import os
 import payswarm
+import sys
 import time
 
 USAGE = """%prog [OPTIONS] COMMAND ...
@@ -113,7 +111,7 @@ https://dev.payswarm.com/profile/clients
     client_id = _ask("Application client ID?", 
         config, "application", "client-id")
     secret = _ask("Application secret?",
-        config, "application", "secret")
+        config, "application", "client-secret")
     payswarm.config.set_oauth_credentials(config, client_id, secret)
 
     # Retrieve the basic PaySwarm endpoints
@@ -223,7 +221,8 @@ def _purchase(config, lfilename):
     # read the listing information from the file
     lfile = open(lfilename, "r")
     ldata = json.loads(lfile.read())
-    listing = payswarm.storage.fetch_listing(config, ldata[1])
+    asset = payswarm.storage.fetch(config, ldata[0])
+    listing = payswarm.storage.fetch(config, ldata[1])
 
     # calculate the listing hash from the retrieved listing
     # FIXME: The issue with calculating the listing hash in this way is
@@ -235,14 +234,24 @@ def _purchase(config, lfilename):
     listing_hash = \
         hashlib.sha1(payswarm.jsonld.normalize(listing)).hexdigest()
     
-    # attempt to purchase the listing
+    # attempt to purchase the listing up to 3 times
     attempts = 0 
-    while(attempts < 3):
+    purchase_success = False
+    while(not purchase_success and attempts < 3):
         try:
-            client.purchase(listing_url, listing_hash)
+            purchase = client.purchase(listing_url, listing_hash)
+            purchase_success = True
+            
+            # display the item purchased and remaining balance
+            if(purchase["authorized"] == "true"):
+                sys.stdout.write("Purchase of '%s' successful.\n" % \
+                    (asset["dc:title"],))
+                sys.stdout.write("$%s remaining for session.\n" % \
+                    (purchase["balance"],))
         except Exception, e:
             sys.stderr.write("Error: %s" % e)
             attempts += 1
+            # if there was an error, re-establish a payment session
             if(attempts < 3):
                 _establish_payment_session(config, client)
 

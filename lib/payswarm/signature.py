@@ -1,12 +1,11 @@
 """The signature module is used to perform PaySwarm signatures on data."""
-import Crypto.PublicKey.RSA as RSA
-from Crypto.Util.number import long_to_bytes
 import base64
 import binascii
 import copy
 import hashlib
 import json
 import jsonld
+import M2Crypto
 import time
 
 def sign(config, item):
@@ -22,13 +21,22 @@ def sign(config, item):
     # Generate the signature creation time
     created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
-    # Generate the signature
+    # generate the signature
     #print "PRE-SIG ITEM:\n", jsonld.normalize(rval)
     #print "PRE-SIG SHA1:", hashlib.sha1(jsonld.normalize(rval)).hexdigest()
 
-    sha1 = hashlib.sha1(jsonld.normalize(item)).hexdigest()
-    key = RSA.importKey(config.get("application", "private-key"))
-    sig_bytes = long_to_bytes(key.sign(sha1, '')[0])
+    # normalize the item to be signed
+    normalized = jsonld.normalize(item)
+    
+    # load the key from the config
+    private_pem = config.get("application", "private-key")
+    private_key = M2Crypto.EVP.load_key_string(private_pem)
+    
+    # perform the signature
+    private_key.reset_context(md='sha1')
+    private_key.sign_init()
+    private_key.sign_update(normalized)
+    sig_bytes = private_key.sign_final()
     signature = binascii.b2a_base64(sig_bytes).strip()
 
     rval["sig:signature"] = \
