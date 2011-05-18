@@ -6,7 +6,7 @@
       {
          "foaf:name": "Federal Communications Commission"
       },
-      "geo:latitutde": "37.229",
+      "geo:latitude": "37.229",
       "geo:longitude": "-80.415",
       "spec:maxTransmitPower": "37 dBm",
       "spec:leaseTime": "5 minutes",
