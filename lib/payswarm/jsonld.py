@@ -14,12 +14,14 @@ DEFAULT_CONTEXT = \
     "com": "http://purl.org/commerce#", \
     "dc": "http://purl.org/dc/terms/", \
     "foaf": "http://xmlns.org/foaf/0.1/", \
+    "geo": "http://www.w3.org/2003/01/geo/wgs84_pos#", \
     "gr": "http://purl.org/goodrelations/v1#", \
     "ps": "http://purl.org/payswarm#", \
     "psp": "http://purl.org/payswarm/preferences#", \
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#", \
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#", \
     "sig": "http://purl.org/signature#", \
+    "spec": "http://fcc.example.org/spectrum#", \
     "vcard": "http://www.w3.org/2006/vcard/ns#", \
     "xsd": "http://www.w3.org/2001/XMLSchema#", \
     "#types": \
@@ -65,12 +67,14 @@ FAKE_DEFAULT_CONTEXT = { \
          "com": "http://purl.org/commerce#", \
          "dc": "http://purl.org/dc/terms/", \
          "foaf": "http://xmlns.org/foaf/0.1/", \
+         "geo": "http://www.w3.org/2003/01/geo/wgs84_pos#", \
          "gr": "http://purl.org/goodrelations/v1#", \
          "ps": "http://purl.org/payswarm#", \
          "psp": "http://purl.org/payswarm/preferences#", \
          "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#", \
          "rdfs": "http://www.w3.org/2000/01/rdf-schema#", \
          "sig": "http://purl.org/signature#", \
+         "spec": "http://fcc.example.org/spectrum#", \
          "vcard": "http://www.w3.org/2006/vcard/ns#", \
          "xsd": "http://www.w3.org/2001/XMLSchema#" \
       }

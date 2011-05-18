@@ -21,14 +21,14 @@ To configure a PaySwarm client run the following command:
 
 To register a listing:
 
-./payswarm register listing.json
+./payswarm register listings/test.json
 
 To perform a purchase of the listing:
 
-./payswarm purchase listing.json
+./payswarm purchase listings/test.json
 
-To retrieve a contract associated with the purchase of the listing:
-
-./payswarm contract listing.json
-
+Once you purchase a listing, future purchases of that listing will not
+charge you any money. You may re-purchase the item by re-registering
+the asset and listing, which will force a new digital signature on the 
+items, thus allowing you to purchase the newly registered item.
 

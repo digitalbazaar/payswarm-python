@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 #
 # Performs a number of PaySwarm client commands.
+import sys
+sys.path.insert(0, "lib")
+
 import hashlib
 import json
 from optparse import OptionParser
 import os
 import payswarm
-import sys
 import time
 
 USAGE = """%prog [OPTIONS] COMMAND ...
@@ -20,7 +22,6 @@ Examples:
    %prog config             [Configure a number of PaySwarm defaults]
    %prog register LISTING   [Register a listing to be purchased]
    %prog purchase LISTING   [Perform a purchase using the client]
-   %prog receipt  LISTING   [Retrieve a contract for a previous purchase]
 
 ************** %prog command line options **************"""
 
