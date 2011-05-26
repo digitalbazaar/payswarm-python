@@ -105,7 +105,7 @@ def _configure(config):
 In order to fully configure this PaySwarm client, you will need to use a
 Web Browser. Go to the following URL and create an Application profile:
 
-https://dev.payswarm.com/profile/clients
+https://dev.payswarm.com/profile/applications
 
 """)
     # Get the registration token and secret
