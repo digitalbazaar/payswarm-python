@@ -99,9 +99,7 @@ def set_basic_endpoints(config):
     aconfig = json.loads(data.read())
 
     # Extract the information from the authority configuration
-    for k, v in aconfig.items():
-        key = k.lstrip("<").rstrip(">")
-        value = v.lstrip("<").rstrip(">")
+    for key, value in aconfig.items():
         if(key == PSW_REQUEST):
             config.set("general", "request-url", value)
         elif(key == PSW_AUTHORIZE):
@@ -123,9 +121,7 @@ def set_application_endpoints(client, config):
         authority_url, "Failed to retrieve application endpoints.")
 
     # Extract the information from the authority configuration
-    for k, v in endpoints.items():
-        key = k.lstrip("<").rstrip(">")
-        value = v.lstrip("<").rstrip(">")
+    for key, value in endpoints.items():
         if(key == PSW_REQUEST):
             config.set("general", "request-url", value)
         elif(key == PSW_AUTHORIZE):
@@ -155,20 +151,19 @@ def set_application_preferences(client, config):
         preferences_url, "Failed to retrieve application endpoints.")
 
     # Extract the information from the authority configuration
-    for k, v in preferences.items():
-        key = k.lstrip("<").rstrip(">")
+    for key, value in preferences.items():
         if(key == PS_ACCOUNT):
-            accounts = v
+            accounts = value
             for account in accounts:
-                account_id = account["@"].lstrip("<").rstrip(">")
+                account_id = account["@subject"]
                 config.set( \
                     "application", "financial-account", account_id)
         elif(key == PSP_LICENSE):
-            licenses = v
+            licenses = value
             for license in licenses:
-                license_id = license["@"].lstrip("<").rstrip(">")
+                license_id = license["@subject"]
                 license_hash = \
-                    license["<" + PS_LICENSE_HASH + ">"].lstrip("<").rstrip(">")
+                    license[PS_LICENSE_HASH]
                 config.set("application", "default-license", license_id)
                 config.set("application", "default-license-hash", license_hash)
 

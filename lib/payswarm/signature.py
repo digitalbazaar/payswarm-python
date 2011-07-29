@@ -4,7 +4,7 @@ import binascii
 import copy
 import hashlib
 import json
-import jsonld
+import pyld.jsonld as jsonld
 import M2Crypto
 import time
 
@@ -26,7 +26,7 @@ def sign(config, item):
     #print "PRE-SIG SHA1:", hashlib.sha1(jsonld.normalize(rval)).hexdigest()
 
     # normalize the item to be signed
-    normalized = jsonld.normalize(item)
+    normalized = json.dumps(jsonld.normalize(item), sort_keys=True, separators=(',',':'))
     
     # load the key from the config
     private_pem = config.get("application", "private-key")
@@ -41,7 +41,7 @@ def sign(config, item):
 
     rval["sig:signature"] = \
     {
-        "a": "sig:JsonldSignature",
+        "@type": "sig:JsonldSignature",
         "dc:created": created,
         "dc:creator": config.get("application", "public-key-url"),
         "sig:signatureValue": signature,

@@ -4,7 +4,7 @@ keys, digitally signing and registering assets for sale, registering listings,
 establishing Payment Sessions and performing purchases."""
 import config
 import json
-import jsonld
+import pyld.jsonld as jsonld
 import oauth2 as oauth
 import os
 import purchase
@@ -241,7 +241,7 @@ class PaySwarmClient(oauth.Client):
         info = self.call(key_url, "Failed to register public key", post_data)
         
         # store the key URL in the configuration
-        public_key_url = info["@"].lstrip("<").rstrip(">")
+        public_key_url = info["@subject"]
         self.config.set("application", "public-key-url", public_key_url)
 
     def set_token(self, token, secret):

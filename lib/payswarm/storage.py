@@ -2,10 +2,49 @@
 import copy
 import hashlib
 import json
-import jsonld
+import pyld.jsonld as jsonld
 import signature
 import time
 import urllib2
+
+def _updateCoerce(ctx, type, values):
+    coerce = ctx["@coerce"]
+    if type not in ctx:
+        coerce[type] = []
+    coerce[type].extend(values)
+
+DEFAULT_CONTEXT = jsonld.createDefaultContext()
+_updateCoerce(DEFAULT_CONTEXT, "xsd:anyURI", [
+    "ccard:brand",
+    "com:destination",
+    "com:destinationOwnerType",
+    "com:payee",
+    "com:rateContext",
+    "com:rateType",
+    "com:source",
+    "dc:creator",
+    "ps:asset",
+    "ps:assetProvider",
+    "ps:authority",
+    "ps:contentUrl",
+    "ps:license",
+    #"psa:module",
+    #"psa:role",
+    "sig:signer",
+])
+_updateCoerce(DEFAULT_CONTEXT, "xsd:integer", [
+    # FIXME: be more strict with nonNegativeInteger?
+    "com:payeePosition",
+])
+_updateCoerce(DEFAULT_CONTEXT, "xsd:dateTime", [
+    "dc:created",
+    "com:date",
+    "ps:validFrom",
+    "ps:validUntil",
+])
+_updateCoerce(DEFAULT_CONTEXT, "rdf:XMLLiteral", [
+    "ps:licenseTemplate",
+])
 
 def populate_asset(config, asset):
     """Populates an asset with the provider, authority and content URLs.
@@ -16,9 +55,9 @@ def populate_asset(config, asset):
     Returns an updated asset.
     """
     rval = copy.deepcopy(asset)
-    storage_url = config.get("general", "listings-url") + asset["@"]
+    storage_url = config.get("general", "listings-url") + asset["@subject"]
     
-    rval["@"] = storage_url
+    rval["@subject"] = storage_url
     # FIXME: Need a better way of setting the asset provider. This method
     # is bound to the dev.payswarm.com PaySwarm Authority software.
     rval["ps:assetProvider"] = \
@@ -39,22 +78,21 @@ def register_asset(config, asset):
     Returns the digitally signed asset.
     Throws an exception if something nasty happens.
     """
-    storage_url = config.get("general", "listings-url") + asset["@"]
+    storage_url = config.get("general", "listings-url") + asset["@subject"]
 
     # fill out the config-based information in the asset
     populated_asset = populate_asset(config, asset)
 
+    # include the default context if necessary
+    populated_asset.setdefault("@context", DEFAULT_CONTEXT)
+
     # digitally sign the asset
     sa = signature.sign(config, populated_asset)
-
-    # include the default context if necessary
-    if(not sa.has_key("#")):
-        sa["#"] = jsonld.FAKE_DEFAULT_CONTEXT
 
     # upload the asset
     req = urllib2.Request(storage_url,
         headers = { "Content-Type": "application/json" },
-        data = json.dumps(sa, sort_keys = True, indent = 3))
+        data = json.dumps(sa, sort_keys=True, indent=3))
     urllib2.urlopen(req)
     
     return sa
@@ -68,7 +106,7 @@ def fetch(config, item):
         item.
     """
     rval = None
-    storage_url = config.get("general", "listings-url") + item["@"]
+    storage_url = config.get("general", "listings-url") + item["@subject"]
 
     # retrieve the listing
     rval = json.loads(urllib2.urlopen(storage_url).read())
@@ -84,20 +122,20 @@ def populate_listing(config, asset, listing):
     Returns an updated listing.
     """
     rval = copy.deepcopy(listing)
-    storage_url = config.get("general", "listings-url") + listing["@"]
+    storage_url = config.get("general", "listings-url") + listing["@subject"]
     
-    rval["@"] = storage_url
+    rval["@subject"] = storage_url
     # Set all of the AUTOFILL variables
     if(rval.has_key("com:payee")):
         p = rval["com:payee"]
-        p["@"] = config.get("general", "listings-url") + p["@"]
+        p["@subject"] = config.get("general", "listings-url") + p["@subject"]
         if("AUTOFILL" in p["com:destination"]):
             p["com:destination"] = \
                 config.get("application", "financial-account")
 
     # Set the necessary asset/license variables
-    rval["ps:asset"] = asset["@"]
-    rval["ps:assetHash"] = hashlib.sha1(jsonld.normalize(asset)).hexdigest()
+    rval["ps:asset"] = asset["@subject"]
+    rval["ps:assetHash"] = hashlib.sha1(json.dumps(jsonld.normalize(asset), sort_keys=True, separators=(',',':'))).hexdigest()
     rval["ps:license"] = \
         config.get("application", "default-license")
     rval["ps:licenseHash"] = \
@@ -123,22 +161,21 @@ def register_listing(config, signed_asset, listing):
     Throws an exception if something nasty happens.
     """
     # Fill out the config-based information in the given listing
-    storage_url = config.get("general", "listings-url") + listing["@"]
+    storage_url = config.get("general", "listings-url") + listing["@subject"]
     
     # populate the listing
     populated_listing = populate_listing(config, signed_asset, listing)
 
+    # include the default context if necessary
+    populated_listing.setdefault("@context", DEFAULT_CONTEXT)
+
     # Digitally sign the listing
     sl = signature.sign(config, populated_listing)
-
-    # include the default context if necessary
-    if(not sl.has_key("#")):
-        sl["#"] = jsonld.FAKE_DEFAULT_CONTEXT
 
     # Upload the listing
     req = urllib2.Request(storage_url,
         headers = { "Content-Type": "application/json" },
-        data = json.dumps(sl, sort_keys = True, indent = 3))
+        data = json.dumps(sl, sort_keys=True, indent=3))
     urllib2.urlopen(req)
 
     return sl

@@ -1,7 +1,7 @@
 [
    {
-      "@": "spectrum/assets/us/blacksburg/va/704Mhz",
-      "a": ["spec:GeolocatedSpectrum", "ps:Asset"],
+      "@subject": "spectrum/assets/us/blacksburg/va/704Mhz",
+      "@type": ["spec:GeolocatedSpectrum", "ps:Asset"],
       "dc:creator":
       {
          "foaf:name": "Federal Communications Commission"
@@ -17,31 +17,31 @@
       "dc:title": "704.0-705.5 Mhz Geolocated Spectrum - Blacksburg, VA"
    },
    {
-      "@": "spectrum/listings/us/blacksburg/va/704Mhz",
-      "a": ["gr:Offering", "ps:Listing"],
+      "@subject": "spectrum/listings/us/blacksburg/va/704Mhz",
+      "@type": ["gr:Offering", "ps:Listing"],
       "com:payee": 
       {
-         "@": "spectrum/listings/us/blacksburg/va/704Mhz#payee",
-         "a": "com:Payee",
+         "@subject": "spectrum/listings/us/blacksburg/va/704Mhz#payee",
+         "@type": "com:Payee",
          "com:currency": "USD",
          "com:destination": "AUTOFILL",
          "com:payeePosition": 0,
          "com:rate": "0.05",
-         "com:rateType": "<com:FlatAmount>",
+         "com:rateType": "com:FlatAmount",
          "rdfs:comment": "Payment for usage of 704.0-705.5 Mhz Geolocated Spectrum."
       },
       "com:payeeRule":
       {
-         "a": "com:PayeeRule",
-         "com:destinationOwnerType": "<ps:Authority>",
+         "@type": "com:PayeeRule",
+         "com:destinationOwnerType": "ps:Authority",
          "com:maximumRate": "10.00",
          "com:rateContext":
          [
-            "<com:Inclusive>",
-            "<com:Tax>",
-            "<com:TaxExempt>"
+            "com:Inclusive",
+            "com:Tax",
+            "com:TaxExempt"
          ],
-         "com:rateType": "<com:Percentage>"
+         "com:rateType": "com:Percentage"
       }
    }
 ]

@@ -3,6 +3,7 @@
 # Performs a number of PaySwarm client commands.
 import sys
 sys.path.insert(0, "lib")
+sys.path.insert(0, "../pyld/lib")
 
 import hashlib
 import json
@@ -167,13 +168,13 @@ def _register(config, lfilename):
         # Register the loaded asset
         sys.stdout.write("Registering asset:")
         signed_asset = payswarm.storage.register_asset(config, asset)
-        sys.stdout.write(" %s\n" % signed_asset["@"])
+        sys.stdout.write(" %s\n" % signed_asset["@subject"])
         
         # Register the loaded listing
         sys.stdout.write("Registering listing:")
         signed_listing = payswarm.storage.register_listing(\
             config, signed_asset, listing)
-        sys.stdout.write(" %s\n" % signed_listing["@"])
+        sys.stdout.write(" %s\n" % signed_listing["@subject"])
     except ValueError, e:
         sys.stderr.write("Error: Failed to parse %s as JSON-LD\n" % lfilename)
         sys.stderr.write(str(e) + "\n")
@@ -231,14 +232,15 @@ def _purchase(config, lfilename):
     # listing hash will always be valid, even if it is changed without
     # the client's knowledge, which could result in a purchase of 
     # something that the client didn't intend to purchase.
-    listing_url = listing["@"]
+    listing_url = listing["@subject"]
     listing_hash = \
-        hashlib.sha1(payswarm.jsonld.normalize(listing)).hexdigest()
+        hashlib.sha1(json.dumps(payswarm.jsonld.normalize(listing), sort_keys=True, separators=(',',':'))).hexdigest()
     
     # attempt to purchase the listing up to 3 times
     attempts = 0 
+    max_attempts = 3
     purchase_success = False
-    while(not purchase_success and attempts < 3):
+    while(not purchase_success and attempts < max_attempts):
         try:
             purchase = client.purchase(listing_url, listing_hash)
             purchase_success = True
@@ -253,7 +255,7 @@ def _purchase(config, lfilename):
             sys.stderr.write("Error: %s" % e)
             attempts += 1
             # if there was an error, re-establish a payment session
-            if(attempts < 3):
+            if(attempts < max_attempts):
                 _establish_payment_session(config, client)
 
 if __name__ == "__main__":
