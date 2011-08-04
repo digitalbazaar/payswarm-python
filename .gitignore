@@ -1,0 +1,5 @@
+*~
+*.sw[nop]
+*.py[co]
+
+lib/oauth2
