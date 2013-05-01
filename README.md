@@ -32,3 +32,7 @@ charge you any money. You may re-purchase the item by re-registering
 the asset and listing, which will force a new digital signature on the 
 items, thus allowing you to purchase the newly registered item.
 
+
+
+
+
