@@ -18,8 +18,8 @@ establishing Payment Sessions and performing purchases.
 Requirements
 ------------
 
- * python (2.5 or later)
- * python-m2crypto (0.20.1 or later)
+ * [Python][] (2.5 or later)
+ * [PyCrypto][] (2.6 or later)
 
 Usage
 -----
@@ -55,5 +55,6 @@ Please see the [LICENSE][] file for full license details.
 [PaySwarm]: http://payswarm.com/
 [Digital Bazaar]: http://digitalbazaar.com/
 [Python]: http://www.python.org/
+[PyCrypto]: http://www.pycrypto.org/
 [AUTHORS]: AUTHORS
 [LICENSE]: LICENSE
