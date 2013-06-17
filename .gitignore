@@ -1,5 +1,8 @@
-*~
-*.sw[nop]
 *.py[co]
-
-lib/oauth2
+*.sw[nop]
+*~
+.coverage
+MANIFEST
+cover
+dist
+docs/_build
