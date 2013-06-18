@@ -1,40 +1,41 @@
-[
-   {
-      "@subject": "example/test/asset",
-      "@type": "ps:Asset",
-      "dc:creator":
-      {
-         "foaf:name": "John Doe"
+{
+  "@context": [
+    "https://w3id.org/payswarm/v1"
+  ],
+  "@graph": [
+    {
+      "id": "example/test/asset",
+      "type": "Asset",
+      "creator": {
+        "foaf:name": "John Doe"
       },
-      "dc:title": "A Test Asset"
-   },
-   {
-      "@subject": "example/test/listing",
-      "@type": ["gr:Offering", "ps:Listing"],
-      "com:payee": 
-      {
-         "@subject": "example/test/listing#payee",
-         "@type": "com:Payee",
-         "com:currency": "USD",
-         "com:destination": "AUTOFILL",
-         "com:payeePosition": 0,
-         "com:rate": "0.040973",
-         "com:rateType": "com:FlatAmount",
-         "rdfs:comment": "Payment for Test Asset."
+      "title": "A Test Asset"
+    },
+    {
+      "id": "example/test/listing",
+      "type": ["gr:Offering", "Listing"],
+      "payee": {
+        "id": "example/test/listing#payee",
+        "type": "com:Payee",
+        "currency": "USD",
+        "destination": "AUTOFILL",
+        "payeePosition": 0,
+        "rate": "0.040973",
+        "rateType": "com:FlatAmount",
+        "comment": "Payment for Test Asset."
       },
-      "com:payeeRule":
-      {
-         "@type": "com:PayeeRule",
-         "com:destinationOwnerType": "ps:Authority",
-         "com:maximumRate": "10.00",
-         "com:rateContext":
-         [
-            "com:Inclusive",
-            "com:Tax",
-            "com:TaxExempt"
-         ],
-         "com:rateType": "com:Percentage"
+      "payeeRule": {
+        "type": "PayeeRule",
+        "destinationOwnerType": "Authority",
+        "maximumRate": "10.00",
+        "rateContext":
+        [
+          "Inclusive",
+          "Tax",
+          "TaxExempt"
+        ],
+        "rateType": "Percentage"
       }
-   }
-]
-
+    }
+  ]
+}

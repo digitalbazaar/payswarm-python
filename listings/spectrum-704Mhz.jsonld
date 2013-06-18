@@ -1,10 +1,13 @@
-[
-   {
-      "@subject": "spectrum/assets/us/blacksburg/va/704Mhz",
-      "@type": ["spec:GeolocatedSpectrum", "ps:Asset"],
-      "dc:creator":
-      {
-         "foaf:name": "Federal Communications Commission"
+{
+  "@context": [
+    "https://w3id.org/payswarm/v1"
+  ],
+  "@graph": [
+    {
+      "id": "spectrum/assets/us/blacksburg/va/704Mhz",
+      "type": ["spec:GeolocatedSpectrum", "Asset"],
+      "creator": {
+        "foaf:name": "Federal Communications Commission"
       },
       "geo:latitude": "37.229",
       "geo:longitude": "-80.415",
@@ -14,35 +17,32 @@
       "spec:bandEnd": "705500000",
       "spec:transmitWindowStart": "1305690538.911694",
       "spec:transmitWindowEnd": "1305690543.911694",
-      "dc:title": "704.0-705.5 Mhz Geolocated Spectrum - Blacksburg, VA"
-   },
-   {
-      "@subject": "spectrum/listings/us/blacksburg/va/704Mhz",
-      "@type": ["gr:Offering", "ps:Listing"],
-      "com:payee": 
-      {
-         "@subject": "spectrum/listings/us/blacksburg/va/704Mhz#payee",
-         "@type": "com:Payee",
-         "com:currency": "USD",
-         "com:destination": "AUTOFILL",
-         "com:payeePosition": 0,
-         "com:rate": "0.05",
-         "com:rateType": "com:FlatAmount",
-         "rdfs:comment": "Payment for usage of 704.0-705.5 Mhz Geolocated Spectrum."
-      },
-      "com:payeeRule":
-      {
-         "@type": "com:PayeeRule",
-         "com:destinationOwnerType": "ps:Authority",
-         "com:maximumRate": "10.00",
-         "com:rateContext":
-         [
-            "com:Inclusive",
-            "com:Tax",
-            "com:TaxExempt"
+      "title": "704.0-705.5 Mhz Geolocated Spectrum - Blacksburg, VA"
+    },
+    {
+       "id": "spectrum/listings/us/blacksburg/va/704Mhz",
+       "type": ["gr:Offering", "Listing"],
+       "com:payee": {
+         "id": "spectrum/listings/us/blacksburg/va/704Mhz#payee",
+         "type": "Payee",
+         "currency": "USD",
+         "destination": "AUTOFILL",
+         "payeePosition": 0,
+         "rate": "0.05",
+         "rateType": "FlatAmount",
+         "comment": "Payment for usage of 704.0-705.5 Mhz Geolocated Spectrum."
+       },
+       "payeeRule": {
+         "type": "PayeeRule",
+         "destinationOwnerType": "ps:Authority",
+         "maximumRate": "10.00",
+         "rateContext": [
+           "Inclusive",
+           "Tax",
+           "TaxExempt"
          ],
-         "com:rateType": "com:Percentage"
-      }
-   }
-]
-
+         "rateType": "Percentage"
+       }
+    }
+  ]
+}

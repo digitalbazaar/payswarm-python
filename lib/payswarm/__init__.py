@@ -2,19 +2,23 @@
 such as registering with a PaySwarm Authority, generating public/private 
 keys, digitally signing and registering assets for sale, registering listings, 
 establishing Payment Sessions and performing purchases."""
-import config
+
 import json
-import pyld.jsonld as jsonld
-import oauth2 as oauth
 import os
+import urlparse
+
+import pyld.jsonld as jsonld
+
+import config
+import constants
 import purchase
 import signature
 import storage
-import urlparse
+import util
 
-__all__ = ["config", "jsonld", "purchase", "signature", "storage"]
+__all__ = ["config", "jsonld", "purchase", "signature", "storage", "util"]
 
-class PaySwarmClient(oauth.Client):
+class PaySwarmClient(object):
     """The PaySwarm Client is used to communicate with any PaySwarm system."""
 
     def __init__(self, config, client_id, secret):
@@ -294,7 +298,7 @@ class PaySwarmClient(oauth.Client):
         info = self.call(key_url, "Failed to register public key", post_data)
         
         # store the key URL in the configuration
-        public_key_url = info["@subject"]
+        public_key_url = info["id"]
         self.config.set("application", "public-key-url", public_key_url)
 
     def set_token(self, token, secret):

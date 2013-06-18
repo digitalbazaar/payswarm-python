@@ -1,11 +1,22 @@
-# This Makefile git clones all of the software dependencies for this software
-.PHONY: download
+# payswarm-python
 
-download: lib/oauth2
+all:
+	@echo "Hint: Try 'test' or 'cover' target"
 
-lib/oauth2:
-	@echo "Downloading python-oauth2 to lib/oauth2..."
-	@git clone https://github.com/davidlehn/python-oauth2.git /tmp/oauth2.payswarm > /dev/null 2>&1
-	@mv /tmp/oauth2.payswarm/oauth2 lib
-	@rm -rf /tmp/oauth2.payswarm
+clean:
+	rm -rf cover
 
+test: nose-test
+
+unittest-test:
+	python -m unittest discover
+
+nose-test:
+	nosetests tests/test*.py
+
+cover:
+	nosetests \
+		--with-cover --cover-package=payswarm --cover-html \
+		tests/test*.py
+
+.PHONY: test unittest-test nose-test cover

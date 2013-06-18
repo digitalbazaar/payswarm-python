@@ -175,13 +175,13 @@ def _register(config, options, lfilename):
         # Register the loaded asset
         sys.stdout.write("Registering asset:")
         signed_asset = payswarm.storage.register_asset(config, asset)
-        sys.stdout.write(" %s\n" % signed_asset["@id"])
+        sys.stdout.write(" %s\n" % signed_asset["id"])
 
         # Register the loaded listing
         sys.stdout.write("Registering listing:")
         signed_listing = payswarm.storage.register_listing(\
             config, signed_asset, listing)
-        sys.stdout.write(" %s\n" % signed_listing["@id"])
+        sys.stdout.write(" %s\n" % signed_listing["id"])
     except ValueError, e:
         sys.stderr.write("Error: Failed to parse %s as JSON-LD\n" % lfilename)
         sys.stderr.write(str(e) + "\n")
@@ -239,10 +239,9 @@ def _purchase(config, options, lfilename):
     # listing hash will always be valid, even if it is changed without
     # the client's knowledge, which could result in a purchase of
     # something that the client didn't intend to purchase.
-    listing_url = listing["@subject"]
-    listing_hash = \
-        hashlib.sha1(json.dumps(payswarm.jsonld.normalize(listing), sort_keys=True, separators=(',',':'))).hexdigest()
-    
+    listing_url = listing["id"]
+    listing_hash = payswarm.util.hash(listing)
+
     # attempt to purchase the listing up to 3 times
     attempts = 0
     max_attempts = 3
