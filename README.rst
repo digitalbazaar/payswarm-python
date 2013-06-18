@@ -59,19 +59,16 @@ To install testing requirements::
 Usage
 -----
 
-To configure a PaySwarm client run the following command:
+To configure a PaySwarm client run the following command::
 
-::
     ./payswarm config
 
-To register a listing:
+To register a listing::
 
-::
     ./payswarm register listings/test.json
 
-To perform a purchase of the listing:
+To perform a purchase of the listing::
 
-::
     ./payswarm purchase listings/test.json
 
 Once you purchase a listing, future purchases of that listing will not
