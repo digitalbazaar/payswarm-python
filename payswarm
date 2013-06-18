@@ -7,50 +7,57 @@ sys.path.insert(0, "../pyld/lib")
 
 import hashlib
 import json
-from optparse import OptionParser
+from argparse import ArgumentParser
 import os
 import payswarm
 import time
+import payswarm.ext.config.files
 
-USAGE = """%prog [OPTIONS] COMMAND ...
+USAGE = """%(prog)s [OPTIONS] COMMAND ...
 
-Performs a variety of PaySwarm client operations such as registering 
-with a PaySwarm Authority, generating public/private keys, digitally 
-signing and registering assets for sale, registering listings, 
+Performs a variety of PaySwarm client operations such as registering
+with a PaySwarm Authority, generating public/private keys, digitally
+signing and registering assets for sale, registering listings,
 establishing Payment Sessions and performing purchases.
 
 Examples:
-   %prog config             [Configure a number of PaySwarm defaults]
-   %prog register LISTING   [Register a listing to be purchased]
-   %prog purchase LISTING   [Perform a purchase using the client]
+   %(prog)s config             [Configure a number of PaySwarm defaults]
+   %(prog)s register LISTING   [Register a listing to be purchased]
+   %(prog)s purchase LISTING   [Perform a purchase using the client]
 
-************** %prog command line options **************"""
+************** %(prog)s command line options **************"""
 
 DEFAULTS = \
 { \
+    "authority-url": "https://dev.payswarm.com/", \
     "config-url": "https://dev.payswarm.com/client-config", \
     "listings-url": "http://listings.dev.payswarm.com/" \
 }
 
 def _parse_options():
     """Get options from command line and return them."""
-    parser = OptionParser(usage=USAGE)
-    parser.add_option(
+    parser = ArgumentParser(usage=USAGE)
+    parser.add_argument(
+        "--authority-url", action="store", dest="authority-url",
+        default=DEFAULTS["authority-url"],
+        help="The PaySwarm Authority URL. "
+        "[Default: %(default)s]")
+    parser.add_argument(
         "--config-url", action="store", dest="config-url",
-        default=DEFAULTS["config-url"], 
+        default=None,
         help="The PaySwarm Authority client configuration URL. "
-        "[Default: %default]")
-    parser.add_option(
+        "[Default: {AUTHORITY_URL}client-config]")
+    parser.add_argument(
         "--listings-url", action="store", dest="listings-url",
-        default=DEFAULTS["listings-url"], 
+        default=DEFAULTS["listings-url"],
         help="URL for Web Service that stores assets and listings. "
-        "[Default: %default]")
-    parser.add_option(
+        "[Default: %(default)s]")
+    parser.add_argument(
         "-c", "--config", action="store",
-        default=None, 
+        default=None,
         help="The configuration file to read in addition to the regular "
         "configuration files. "
-        "[Default: %default]")
+        "[Default: %(default)s]")
 
     options, args = parser.parse_args()
     options.args = args
@@ -75,12 +82,12 @@ def _ask(question, config=None, section=None, name=None):
     default = ""
 
     # Check to see if there is a default value for the option
-    if(config != None and config.has_option(section, name)):
+    if config != None and config.has_option(section, name):
         default = config.get(section, name)
 
     # Attempt to get the option from the command line
-    while(not rval):
-        if(default):
+    while not rval:
+        if default:
             sys.stdout.write(question + " [Default: %s] " % default)
             sys.stdout.flush()
             rval = sys.stdin.readline().strip()
@@ -96,7 +103,7 @@ def _ask(question, config=None, section=None, name=None):
 
     return rval
 
-def _configure(config):
+def _configure(config, options):
     """Performs basic PaySwarm client configuration.
 
     Asks a number of questions on the command line, contacts the PaySwarm
@@ -110,7 +117,7 @@ https://dev.payswarm.com/profile/applications
 
 """)
     # Get the registration token and secret
-    client_id = _ask("Application client ID?", 
+    client_id = _ask("Application client ID?",
         config, "application", "client-id")
     secret = _ask("Application secret?",
         config, "application", "client-secret")
@@ -149,9 +156,9 @@ https://dev.payswarm.com/profile/applications
     client.register_public_key()
 
     sys.stdout.write("Configuration complete.\n")
-    payswarm.config.save(config)
+    payswarm.config.save(config, options)
 
-def _register(config, lfilename):
+def _register(config, options, lfilename):
     """Registers a given listing on the listing service.
 
     config - the configuration object to get the listing service URL from.
@@ -168,26 +175,26 @@ def _register(config, lfilename):
         # Register the loaded asset
         sys.stdout.write("Registering asset:")
         signed_asset = payswarm.storage.register_asset(config, asset)
-        sys.stdout.write(" %s\n" % signed_asset["@subject"])
-        
+        sys.stdout.write(" %s\n" % signed_asset["@id"])
+
         # Register the loaded listing
         sys.stdout.write("Registering listing:")
         signed_listing = payswarm.storage.register_listing(\
             config, signed_asset, listing)
-        sys.stdout.write(" %s\n" % signed_listing["@subject"])
+        sys.stdout.write(" %s\n" % signed_listing["@id"])
     except ValueError, e:
         sys.stderr.write("Error: Failed to parse %s as JSON-LD\n" % lfilename)
         sys.stderr.write(str(e) + "\n")
 
-def _establish_payment_session(config, client):
+def _establish_payment_session(config, client, options):
     """Requests a new Payment Session with the PaySwarm Authority.
-    
+
     client - the OAuth client to use to establish the session.
-    
+
     Returns True if a session was established, False otherwise.
     """
     rval = False
-    
+
     # Authorize the payment token, thus establishing a payment session
     client.clear_token()
     url = client.generate_payment_session_url()
@@ -196,12 +203,12 @@ def _establish_payment_session(config, client):
         "   %s\n\n" % url)
     verifier = _ask("Enter the verification key:")
     client.authorize_payment_session(verifier)
-    payswarm.config.save(config)
+    payswarm.config.save(config, options)
     rval = True
-        
+
     return rval
 
-def _purchase(config, lfilename):
+def _purchase(config, options, lfilename):
     """Performs PaySwarm purchase given a config and listing filename.
 
     config - the configuration to use when configuring the PaySwarm client.
@@ -215,7 +222,7 @@ def _purchase(config, lfilename):
     # ensure that there is an active payment session in place
     if(not config.has_option("client", "payment-token") or  \
         not config.has_option("client", "payment-token-secret")):
-        _establish_payment_session(config, client)
+        _establish_payment_session(config, client, options)
     else:
         client.set_token(config.get("client", "payment-token"),
             config.get("client", "payment-token-secret"))
@@ -230,21 +237,21 @@ def _purchase(config, lfilename):
     # FIXME: The issue with calculating the listing hash in this way is
     # that an invalid listing hash will never be a possibility. The
     # listing hash will always be valid, even if it is changed without
-    # the client's knowledge, which could result in a purchase of 
+    # the client's knowledge, which could result in a purchase of
     # something that the client didn't intend to purchase.
     listing_url = listing["@subject"]
     listing_hash = \
         hashlib.sha1(json.dumps(payswarm.jsonld.normalize(listing), sort_keys=True, separators=(',',':'))).hexdigest()
     
     # attempt to purchase the listing up to 3 times
-    attempts = 0 
+    attempts = 0
     max_attempts = 3
     purchase_success = False
     while(not purchase_success and attempts < max_attempts):
         try:
             purchase = client.purchase(listing_url, listing_hash)
             purchase_success = True
-            
+
             # display the item purchased and remaining balance
             if(purchase["authorized"] == "true"):
                 sys.stdout.write("Purchase of '%s' successful.\n" % \
@@ -256,9 +263,72 @@ def _purchase(config, lfilename):
             attempts += 1
             # if there was an error, re-establish a payment session
             if(attempts < max_attempts):
-                _establish_payment_session(config, client)
+                _establish_payment_session(config, client, options)
 
-if __name__ == "__main__":
+def _establish_system_session(config, client, options):
+    """Requests a new system session with the PaySwarm Authority.
+
+    client - the OAuth client to use to establish the session.
+
+    Returns True if a session was established, False otherwise.
+    """
+    rval = False
+
+    # Authorize the token, thus establishing a session
+    client.clear_token()
+    url = client.generate_system_session_url()
+    sys.stdout.write( \
+        "Go to the following URL and authorize the system session:\n\n"
+        "   %s\n\n" % url)
+    verifier = _ask("Enter the verification key:")
+    client.authorize_system_session(verifier)
+    payswarm.config.save(config, options)
+    rval = True
+
+    return rval
+
+def _system(config, options, command):
+    """Performs a PaySwarm system service call.
+
+    config - the configuration to use when configuring the PaySwarm client.
+    command - the command to call.
+    params - optional params for the command.
+    """
+    client_id = config.get("application", "client-id")
+    client_secret = config.get("application", "client-secret")
+    client = payswarm.PaySwarmClient(config, client_id, client_secret)
+
+    # ensure that there is an active session in place
+    if(not config.has_option("client", "system-token") or  \
+        not config.has_option("client", "system-token-secret")):
+        _establish_system_session(config, client, options)
+    else:
+        client.set_token(config.get("client", "system-token"),
+            config.get("client", "system-token-secret"))
+
+    command_url = config.get("general", "authority-url") + "system/" + command
+
+
+    # attempt to make system call
+    attempts = 0
+    max_attempts = 3
+    success = False
+    while(not success and attempts < max_attempts):
+        try:
+            result = client.call(command_url, "error")
+            try:
+                print json.dumps(result, sort_keys=True, indent=None)
+            except:
+                print result
+            success = True
+        except Exception, e:
+            sys.stderr.write("Error: %s" % e)
+            attempts += 1
+            # if there was an error, re-establish a payment session
+            if(attempts < max_attempts):
+                _establish_system_session(config, client, options)
+
+if __name__ == "xxx__main__":
     # Get the options from the command line
     options = _parse_options()
 
@@ -266,20 +336,73 @@ if __name__ == "__main__":
     config = payswarm.config.parse(DEFAULTS, options)
 
     for command in options.args:
-        if(command == "config"):
-            _configure(config)
-        elif(command == "register"):
-            if(options.args[-1].endswith(".jsonld")):
-                _register(config, options.args[-1])
+        if command == "config":
+            _configure(config, options)
+        elif command == "test":
+            print 'test'
+        elif command == "system":
+            _system(config, options, options.args[-1])
+        elif command == "register":
+            if options.args[-1].endswith(".jsonld"):
+                _register(config, options, options.args[-1])
             else:
                 sys.stderr.write("Error: You must specify a listing file "
                     "ending in .jsonld to register\n")
-        elif(command == "purchase"):
-            if(options.args[-1].endswith(".jsonld")):
-                _purchase(config, options.args[-1])
+        elif command == "purchase":
+            if options.args[-1].endswith(".jsonld"):
+                _purchase(config, options, options.args[-1])
             else:
                 sys.stderr.write("Error: You must specify a listing file "
                     "ending in .jsonld for the purchase.\n")
-        elif(command == "receipt"):
+        elif command == "receipt":
             pass
 
+class PaySwarmApp(object):
+    def __init__(self, config_plugin):
+        self._plugins = {}
+        self._config = config_plugin
+
+    def add_plugin(self, plugin):
+        self._plugins[plugin.get_name()] = plugin
+
+    def load_plugins(self):
+        for path in self._config.values('application', 'plugin-path'):
+            sys.path.insert(0, path)
+        for name in self._config.properties('plugins'):
+            info = list(self._config.values('plugins', name))[0]
+            if info == '':
+                # import by name
+                m = __import__(name)
+                m.init_plugin(app)
+            elif info.startswith('!'):
+                # skip
+                break
+            else:
+                raise NotImplementedError()
+
+    def run(self):
+        # setup arg parser
+        parser = ArgumentParser()
+        subparsers = parser.add_subparsers(
+                title='commands',
+                description='Valid comands')
+        # setup parsers
+        for p in self._plugins.values():
+            p.before_args_parsed(parser, subparsers)
+        # parse args
+        args = parser.parse_args()
+        # handle parsed args
+        for p in self._plugins.values():
+            p.after_args_parsed(args)
+        # call action
+        args.func(args)
+
+if __name__ == "__main__":
+    config_plugin = payswarm.ext.config.files.Config()
+    app = PaySwarmApp(config_plugin)
+    # add files config plugin
+    app.add_plugin(config_plugin)
+    # load plugins
+    app.load_plugins()
+    # plugins should now be loaded, do real run
+    app.run()

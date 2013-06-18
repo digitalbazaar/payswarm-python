@@ -36,9 +36,12 @@ def parse(defaults, options):
     """
     Parses the list of configuration files from the system.
     """
-    uconfig = os.path.expanduser('~/.payswarm1')
-    cfiles = ['/etc/payswarm1.cfg', uconfig]
-    if(options.config != None):
+    uconfig = os.path.join(
+            os.path.expanduser("~"),
+            ".config", "payswarm1", "profiles", options.profile, "payswarm1.cfg")
+    sysconfig = os.path.join("/", "etc", "payswarm1", "payswarm1.cfg")
+    cfiles = [sysconfig, uconfig]
+    if options.config:
         cfiles.append(options.config)
     config = ConfigParser()
     config.read(cfiles)
@@ -51,22 +54,29 @@ def parse(defaults, options):
     # Update the configuration with the command line options, if the
     # options are different from the default or if the config doesn't
     # contain the options
+    _update_config(defaults, config, options, "general", "authority-url")
     _update_config(defaults, config, options, "general", "config-url")
     _update_config(defaults, config, options, "general", "listings-url")
 
     # If the user's configuration file doesn't exist, create it
     if(not os.path.exists(uconfig)):
-        save(config)
+        save(config, options)
 
     return config
 
-def save(config):
+def save(config, options):
     """Saves the given configuration file to the user's payswarm config.
     
     config - the configuration object to save.
+    options - the app options.
     """
-    uconfig = os.path.expanduser('~/.payswarm1')
+    uconfig = os.path.join(
+            os.path.expanduser("~"),
+            ".config", "payswarm1", "profiles", options.profile, "payswarm1.cfg")
 
+    dir = os.path.dirname(uconfig)
+    if not os.path.exists(dir):
+        os.makedirs(dir)
     ufile = open(uconfig, "w")
     config.write(ufile)
     ufile.close()

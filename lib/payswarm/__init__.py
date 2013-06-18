@@ -137,6 +137,34 @@ class PaySwarmClient(oauth.Client):
 
         return rval
 
+    def generate_system_session_url(self):
+        """Requests a sytem token and returns a verification URL.
+
+        Throws an exception if anything nasty happens.
+        """
+        request_url = self.config.get("general", "request-url")
+        authorize_url = self.config.get("general", "authorize-url")
+        params = {
+            "oauth_callback": "oob",
+            "scope": "payswarm-system",
+        }
+
+        # Request a new token
+        response, content = self.request(request_url, "POST", parameters=params)
+        self._check_response(response, content, 
+            "Error: Failed to request a temporary system token.")
+
+        # Extract the token information
+        self.token = oauth.Token.from_string(content)
+
+        # Write the token to the configuration
+        self.config.set("client", "system-token", self.token.key)
+
+        # Build the URL
+        rval = authorize_url + "?oauth_token=%s" % self.token.key
+
+        return rval
+
     def complete_registration(self, verifier):
         """Completes the retrieval of a registration token.
 
@@ -167,7 +195,9 @@ class PaySwarmClient(oauth.Client):
 
         # write the registration token to the configuration
         self.config.set( \
-            "application", "registration-secret", self.token.secret)
+            "application", "registration-token", self.token.key)
+        self.config.set( \
+            "application", "registration-token-secret", self.token.secret)
 
     def authorize_payment_session(self, verifier):
         """Completes the retrieval of a payment token.
@@ -202,6 +232,29 @@ class PaySwarmClient(oauth.Client):
             "client", "payment-token", self.token.key)
         self.config.set( \
             "client", "payment-token-secret", self.token.secret)
+
+    def authorize_system_session(self, verifier):
+        """Completes the retrieval of a system token.
+
+        verifier - the verifier provided to the person after approving the
+            payment token.
+
+        Throws an exception if anything nasty happens.
+        """
+        tokens_url = self.config.get("general", "tokens-url")
+        self.token.set_verifier(verifier)
+
+        # get the registration token and secret
+        response, content = self.request(tokens_url, "GET")
+        self._check_response(response, content, 
+            "Error: Failed to request a system token.")
+        self.token = oauth.Token.from_string(content)
+
+        # write the registration token to the configuration
+        self.config.set( \
+            "client", "system-token", self.token.key)
+        self.config.set( \
+            "client", "system-token-secret", self.token.secret)
 
     def call(self, url, error_message, post_data=None):
         """Performs a call against a URL using OAuth credentials.
@@ -274,3 +327,12 @@ class PaySwarmClient(oauth.Client):
 
         return rval
 
+class Plugin(object):
+    def get_name(self):
+        raise NotImplementedError(self.get_name)
+
+    def before_args_parsed(self, parser, subparsers):
+        pass
+
+    def after_args_parsed(self, args):
+        pass
