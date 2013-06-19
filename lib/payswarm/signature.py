@@ -34,22 +34,6 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 import copy
 import datetime
-import json
-
-have_urllib3 = False
-try:
-    # NOTE: Using urllib3 since urllib2 does not support SNI.
-    # SNI support also requires:
-    #   'pyOpenSSL', 'ndg-httpsclient', and 'pyasn1'
-    import urllib3
-    # setup to get SNI support
-    import urllib3.contrib.pyopenssl
-    urllib3.contrib.pyopenssl.inject_into_urllib3()
-    # create a shared pool
-    urllib3pool = urllib3.PoolManager()
-    have_urllib3 = True
-except ImportError:
-    import urllib2
 
 import payswarm
 
@@ -160,17 +144,7 @@ def verify(jsonld):
             'The message digital signature timestamp is out of range.')
 
     # get public key
-    if have_urllib3:
-        _creator_res = urllib3pool.request('GET', signature['creator'])
-        if _creator_res.status < 200 or _creator_res.status >= 300:
-            raise Exception('Bad status code %d getting public key "%s"' %
-                    ( r.status, signature['creator']))
-        _creator_public_key_str = _creator_res.data
-    else:
-        _creator_stream = urllib2.urlopen(signature['creator'])
-        _creator_public_key_str = _creator_stream.read()
-
-    creator_public_key = json.loads(_creator_public_key_str)
+    creator_public_key = payswarm.util.get(signature['creator'])
     # FIXME frame key
 
     # verify publick key owner

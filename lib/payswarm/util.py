@@ -30,6 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import hashlib
+import json
+
+have_urllib3 = False
+try:
+    # NOTE: Using urllib3 since urllib2 does not support SNI.
+    # SNI support also requires:
+    #   'pyOpenSSL', 'ndg-httpsclient', and 'pyasn1'
+    import urllib3
+    # setup to get SNI support
+    import urllib3.contrib.pyopenssl
+    urllib3.contrib.pyopenssl.inject_into_urllib3()
+    # create a shared pool
+    urllib3pool = urllib3.PoolManager()
+    have_urllib3 = True
+except ImportError:
+    import urllib2
 
 import payswarm
 
@@ -63,3 +79,39 @@ def inline_context(jsonld):
             jsonld['@context'] = _inline(jsonld['@context'])
         elif isinstance(jsonld['@context'], list):
             jsonld['@context'] = [_inline(el) for el in jsonld['@context']]
+
+
+def request(method, url, **kwargs):
+    """
+    Perform a HTTP or HTTPS web request for JSON-LD data.
+    Uses urllib3 if available. Without urllib3 a secure request to a SNI server
+    may fail.
+    """
+    if have_urllib3:
+        res = urllib3pool.request(method, url, **kwargs)
+        if res.status < 200 or res.status >= 300:
+            raise Exception('Bad status code %d getting public key "%s"' %
+                    ( res.status, url))
+        data = res.data
+    else:
+        res = urllib2.urlopen(signature['creator'], **kwargs)
+        data = res.read()
+
+    # FIXME: check data type
+    # FIXME: handle RDFa
+
+    return json.loads(data)
+
+
+def get(url):
+    """
+    Get a JSON-LD resource.
+    """
+    return request('GET', url)
+
+
+def post(url, data):
+    """
+    Post a JSON-LD resource.
+    """
+    return request('POST', url, data=data)
