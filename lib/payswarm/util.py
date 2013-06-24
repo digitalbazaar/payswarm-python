@@ -115,3 +115,14 @@ def post(url, data):
     Post a JSON-LD resource.
     """
     return request('POST', url, data=data)
+
+
+class Plugin(object):
+    def get_name(self):
+        raise NotImplementedError(self.get_name)
+
+    def before_args_parsed(self, parser, subparsers):
+        pass
+
+    def after_args_parsed(self, args):
+        pass

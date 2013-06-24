@@ -1,14 +1,17 @@
-"""The storage module is used to remotely store assets and listings."""
+"""The storage plugin is used to remotely store assets and listings."""
 import copy
 import hashlib
 import json
-import pyld.jsonld as jsonld
-import signature
+import os
 import time
 import urllib2
 
+import pyld.jsonld as jsonld
+
 import constants
+import signature
 import util
+
 
 def populate_asset(config, asset):
     """Populates an asset with the provider, authority and content URLs.
@@ -143,4 +146,23 @@ def register_listing(config, signed_asset, listing):
     urllib2.urlopen(req)
 
     return sl
+
+
+class Storage(util.Plugin):
+    """Plugin to publish PaySwarm assets and listings."""
+
+    def __init__(self):
+        pass
+
+    def get_name(self):
+        return "Storage"
+
+    def before_args_parsed(self, parser, subparsers):
+        pass
+
+    def after_args_parsed(self, args):
+        pass
+
+    def run(self, args):
+        pass
 

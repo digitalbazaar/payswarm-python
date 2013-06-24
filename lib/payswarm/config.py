@@ -1,22 +1,155 @@
 """The PaySwarm configuration module is used to read/write configs."""
-from ConfigParser import ConfigParser
+from __future__ import with_statement
+
+import json
+import logging
+import os
+
+from .util import Plugin
+from pyld.jsonld import JsonLdProcessor as JsonLdProcessor
+
+"""
+Config directory is:
+    PAYSWARM_CONFIG_DIR else
+    ~/.config/payswarm1
+
+Main config is loaded from:
+    PAYSWARM_MAIN_CONFIG_PATH else
+    PAYSWARM_CONFIG_DIR/payswarm.json
+
+Session config is loaded from:
+    value passed to -c/--config else
+    PAYSWARM_CONFIG_PATH else
+    PAYSWARM_CONFIG_DIR/configs/default.json
+
+When loading session config, try:
+    If name doesn't look like a path, load:
+        PAYSWARM_CONFIG_DIR/configs/{CONFIG_NAME}.json
+    else:
+        load as a path
+
+Main config format:
+    {
+        "defaultConfig": "{PATH} or {CONFIG_NAME}",
+        "python": {
+            "pluginPath": ["path1", ...],
+            "plugins": ["plugin1", ...]
+        }
+        ...
+    }
+
+Session config format:
+    {
+        "@context": "https://w3id.org/payswarm/v1",
+        "authority": "https://{URL}/",
+        "owner": "https://{URL}/i/{ID}",
+        "publicKey": {
+            "publicKeyPem": "...",
+            "privateKeyPem": "...",
+            "id": "https://{URL}/i/{ID}/keys/{KEY}"
+        },
+        "source": "https://{URL}/i/{ID}/accounts/{ACCOUNT}"
+    }
+"""
+
+
+class Config(dict):
+
+    def has_property(self, property):
+        return JsonLdProcessor.has_property(self, property)
+
+    def has_value(self, property, value):
+        return JsonLdProcessor.has_value(self, property, value)
+
+    def get_values(self, property):
+        return JsonLdProcessor.get_values(self, property)
+
+    def get_value(self, property):
+        values = list(self.get_values(property))
+        if len(values) > 1:
+            raise Exception('too many values for "%s"' % (property))
+        return values[0]
+
+    def load(self, path, clear=True):
+        if clear:
+            self.clear()
+        with open(path) as config:
+            self.update(json.load(config))
+
+    def save(self, path):
+        with open(path, 'w') as config:
+            config.write(json.dumps(self))
+
+
+class Files(Plugin):
+    """Plugin to load PaySwarm configuration from files."""
+
+    def __init__(self):
+        # top level config dir
+        self.default_config_dir = \
+                os.path.join(os.path.expanduser('~'), '.config', 'payswarm1')
+        self.config_dir = \
+                os.environ.get('PAYSWARM_CONFIG_DIR', self.default_config_dir)
+
+        # main config file path
+        self.default_main_config_path = \
+                os.path.join(self.config_dir, 'payswarm.json')
+        self.main_config_path = \
+                os.environ.get('PAYSWARM_MAIN_CONFIG_PATH',
+                        self.default_main_config_path)
+
+        # load main config
+        self.main_config = Config()
+        self.main_config.load(self.main_config_path)
+
+        # session config file path
+        self.default_config_path = \
+                os.path.join(self.config_dir, 'configs', 'default.json')
+        self.config_path = \
+                self.main_config.get('defaultConfig', '') or \
+                os.environ.get('PAYSWARM_CONFIG_PATH',
+                        self.default_config_path)
+
+        # load config after args processed
+        self.config = Config()
+
+    def get_name(self):
+        return "FilesConfig"
+
+    def before_args_parsed(self, parser, subparsers):
+        default = self.main_config.get('defaultConfig', self.config_path)
+        parser.add_argument('-c', '--config', default=self.config_path,
+                help='Select the configuration to use. (default: %(default)s)')
+        parser.add_argument('--set-config', action='store_true',
+                help='Set the default config in the main config file. (default: %(default)s)')
+
+        subparser = subparsers.add_parser('config')
+        # FIXME: this should change to the root authority URL once services
+        # discovery method is developed
+        subparser.add_argument('-u', '--url',
+                help='The PaySwarm Authority client configuration URL.')
+        subparser.set_defaults(func=self.run)
+
+    def after_args_parsed(self, args):
+        self.config.load(self.config_path)
+
+        if args.config is not None:
+            self.config_path = args.config
+        # FIXME check if path exists else try .../configs/{config}.json
+        if args.set_config:
+            self.main_config['defaultConfig'] = self.config_path
+            self.main_config.save(self.main_config_path)
+
+    def run(self, args):
+        pass
+
+
 from Crypto.PublicKey import RSA
 import json
 import os.path
 import urllib2
 
-# Constants used by the configuration service
-PSW_REQUEST = "http://purl.org/payswarm/webservices#oAuthRequest"
-PSW_AUTHORIZE = "http://purl.org/payswarm/webservices#oAuthAuthorize"
-PSW_TOKENS = "http://purl.org/payswarm/webservices#oAuthTokens"
-PSW_PREFERENCES = "http://purl.org/payswarm/webservices#oAuthPreferences"
-PSW_CONTRACTS = "http://purl.org/payswarm/webservices#oAuthContracts"
-PSW_LICENSES = "http://purl.org/payswarm/webservices#oAuthLicenses"
-PSW_KEYS = "http://purl.org/payswarm/webservices#oAuthKeys"
-# FIXME: This is an error below - should be payswarm#account
-PS_ACCOUNT = "http://purl.org/payswarm/#account"
-PS_LICENSE_HASH = "http://purl.org/payswarm#licenseHash"
-PSP_LICENSE = "http://purl.org/payswarm/preferences#license"
+
 
 def _update_config(defaults, config, options, section, name):
     """"
@@ -80,16 +213,6 @@ def save(config, options):
     ufile = open(uconfig, "w")
     config.write(ufile)
     ufile.close()
-
-def set_oauth_credentials(config, client_id, secret):
-    """Stores the OAuth token and secret in the configuration file.
-    
-    config - the config to write the OAuth credentials to. The client_id is 
-        stored in the [application] section under 'client-id'. The private 
-        key is stored in the [application] section under 'client-secret'."""
-
-    config.set("application", "client-id", client_id)
-    config.set("application", "client-secret", secret)
 
 def set_basic_endpoints(config):
     """Retrieves the PaySwarm Authority Web Service endpoints.

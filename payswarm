@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 #
 # Performs a number of PaySwarm client commands.
+
 import sys
 sys.path.insert(0, "lib")
-sys.path.insert(0, "../pyld/lib")
 
+from argparse import ArgumentParser
 import hashlib
 import json
-from argparse import ArgumentParser
 import os
-import payswarm
 import time
-import payswarm.ext.config.files
+
+import payswarm
+import payswarm.config
 
 USAGE = """%(prog)s [OPTIONS] COMMAND ...
 
@@ -356,28 +357,23 @@ if __name__ == "xxx__main__":
         elif command == "receipt":
             pass
 
-class PaySwarmApp(object):
+class App(object):
     def __init__(self, config_plugin):
         self._plugins = {}
-        self._config = config_plugin
+        self._config_plugin = config_plugin
+        self.add_plugin(config_plugin)
 
     def add_plugin(self, plugin):
         self._plugins[plugin.get_name()] = plugin
 
     def load_plugins(self):
-        for path in self._config.values('application', 'plugin-path'):
+        pythonCfg = self._config_plugin.main_config.get('python', {})
+        for path in pythonCfg.get('pluginPath', []):
             sys.path.insert(0, path)
-        for name in self._config.properties('plugins'):
-            info = list(self._config.values('plugins', name))[0]
-            if info == '':
-                # import by name
-                m = __import__(name)
-                m.init_plugin(app)
-            elif info.startswith('!'):
-                # skip
-                break
-            else:
-                raise NotImplementedError()
+        for name in pythonCfg.get('plugins', []):
+            # import by name
+            m = __import__(name)
+            m.init_plugin(app)
 
     def run(self):
         # setup arg parser
@@ -397,10 +393,14 @@ class PaySwarmApp(object):
         args.func(args)
 
 if __name__ == "__main__":
-    config_plugin = payswarm.ext.config.files.Config()
-    app = PaySwarmApp(config_plugin)
-    # add files config plugin
+    # bootstrap config with file configs
+    config_plugin = payswarm.config.Files()
+    # create app with the config plugin
+    app = App(config_plugin)
+    # add core plugins
     app.add_plugin(config_plugin)
+    #app.add_plugin(payswarm.keys.Keys())
+    app.add_plugin(payswarm.storage.Storage())
     # load plugins
     app.load_plugins()
     # plugins should now be loaded, do real run
