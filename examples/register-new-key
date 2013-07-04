@@ -1,0 +1,93 @@
+#!/usr/bin/env python
+#
+# Example of how to create and register a new public/private keypair.
+import sys
+sys.path.insert(0, "../pyld/lib")
+sys.path.insert(0, "../lib")
+
+import hashlib
+import json
+from argparse import ArgumentParser
+import os
+import payswarm
+import time
+from urlparse import urlparse, parse_qs
+
+USAGE = """%(prog)s
+
+Creates and registers a new PaySwarm access key with a PaySwarm Authority.
+
+************** %(prog)s command line options **************"""
+
+DEFAULTS = \
+{ \
+    "authority": "https://dev.payswarm.com/", \
+}
+
+def _parse_options():
+    """Get options from command line and return them."""
+    parser = ArgumentParser(usage=USAGE)
+    parser.add_argument(
+        "--authority", action="store", dest="authority",
+        default=DEFAULTS["authority"],
+        help="The PaySwarm Authority URL. "
+        "[Default: %(default)s]")
+    parser.add_argument(
+        "-c", "--config", action="store", default=None, dest="configName",
+        help="The PaySwarm configuration to use."
+        "[Default: %(default)s]")
+
+    options, args = parser.parse_args()
+    options.args = args
+
+    return options
+
+def registerNewKey(options):
+    # To register a key, the following steps must be performed:
+    # 1. Generate a public/private keypair (or use an existing one). 
+    # 2. Fetch the Web Keys registration endpoint from the PaySwarm Authority. 
+    # 3. Generate the key registration URL and go to it in a browser. 
+    # 4. Get the new key information and provide it to the program.
+    psClient = payswarm.PaySwarmClient(options.config)
+    
+    # Step #1: Generate a public/private keypair (or use an existing one).
+    if(not psClient.hasKeys()):
+        print("Generating new public/private keypair...")
+        psClient.createKeyPair()
+        psClient.writeConfig(options.config)
+
+    # Step #2: Fetch the Web Keys endpoint from the PaySwarm Authority.
+    #webKeysUrl = URL.parse(payswarmAuthority, true, true)
+    # FIXME: Maybe this should be a part of the bootstrapping process?
+    # FIXME: Maybe this should NOT be automatically called since it goes out to the web?
+    psClient.getWebKeysConfig(webKeysUrl.host)
+
+    # Step #3: Generate the key registration URL
+    registrationUrl = psClient.getRegistrationUrl()
+    
+    print("\nTo register your new key, go to this URL using a Web browser:\n")
+    print(registrationUrl + "\n")
+
+    data = input("Then, enter the encrypted registration message: ")
+    encryptedMessage = JSON.parse(data)
+
+    message = psClient.decrypt(encryptedMessage)
+
+    # Step #4: Get the new key information and write it to the config file
+    configUpdates = {}
+    configUpdates["publicKey"] = {}
+    configUpdates["publicKey"]["id"] = message.publicKey
+    configUpdates["owner"] = message.owner
+    configUpdates["source"] = message.destination
+
+    psClient.writeConfig(config)
+    
+    print("Completed registration of new public key:")
+    print("   Public Key Owner :", configUpdates["owner"])
+    print("   Financial Account:", configUpdates["source"])
+    print("   Public Key URL   :", configUpdates["publicKey"]["id"])
+
+if __name__ == "__main__":
+    options = _parse_options()
+    
+    registerNewKey(options)
