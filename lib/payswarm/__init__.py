@@ -133,9 +133,9 @@ class PaySwarmClient(object):
               owner: # the owner of the config, keys, and account
             }
         """
-        if type(config) == type(dict()):
+        if isinstance(config, dict):
             self.config = config
-        elif config == None or type(config) == type(str()):
+        elif config == None or isinstance(config, basestring):
             config_filename = self._get_config_filename(config)
             
             if os.path.isfile(config_filename):
