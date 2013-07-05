@@ -7,6 +7,7 @@ import json
 import os
 import urlparse
 
+from Crypto.PublicKey import RSA
 import pyld.jsonld as jsonld
 
 import config
@@ -75,10 +76,16 @@ class PaySwarmClient(object):
     def create_key_pair(self):
         """Generates a public/private keypair for the client."""
         
-        # FIXME: implement key pair generation
+        # generate the public/private keypair
+        key_pair = RSA.generate(2048)
+
+        # export public and private key to PEM format
+        private_pem = key_pair.exportKey()
+        public_pem = key_pair.publickey().exportKey()
+
         self.config['publicKey'] = {}
-        self.config['publicKey']['publicKeyPem'] = 'NOT IMPLEMENTED'
-        self.config['publicKey']['privateKeyPem'] = 'NOT IMPLEMENTED'
+        self.config['publicKey']['privateKeyPem'] = private_pem
+        self.config['publicKey']['publicKeyPem'] = public_pem
 
     def has_keys(self):
         """Returns whether or not the client has a valid set of keys."""
