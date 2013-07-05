@@ -93,10 +93,10 @@ def populate_listing(config, asset, listing):
     
     rval["id"] = storage_url
     # Set all of the AUTOFILL variables
-    if(rval.has_key("com:payee")):
+    if rval.has_key("com:payee"):
         p = rval["com:payee"]
         p["id"] = config.get("general", "listings-url") + p["id"]
-        if("AUTOFILL" in p["com:destination"]):
+        if "AUTOFILL" in p["com:destination"]:
             p["com:destination"] = \
                 config.get("application", "financial-account")
 

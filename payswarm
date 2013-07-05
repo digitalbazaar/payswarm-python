@@ -64,7 +64,7 @@ def _parse_options():
     options.args = args
 
     # Check to make sure that there are enough options
-    if(not options.args):
+    if not options.args:
         sys.stderr.write( \
             "ERROR: You must provide at least one command to execute.\n")
         parser.print_help()
@@ -92,13 +92,13 @@ def _ask(question, config=None, section=None, name=None):
             sys.stdout.write(question + " [Default: %s] " % default)
             sys.stdout.flush()
             rval = sys.stdin.readline().strip()
-            if(not rval):
+            if not rval:
                 rval = default
         else:
             sys.stdout.write(question + " ")
             sys.stdout.flush()
             rval = sys.stdin.readline().strip()
-            if(not rval):
+            if not rval:
                 sys.stdout.write("Warning: You must enter something.\n")
                 sys.stdout.flush()
 
@@ -221,8 +221,8 @@ def _purchase(config, options, lfilename):
     client = payswarm.PaySwarmClient(config, client_id, client_secret)
 
     # ensure that there is an active payment session in place
-    if(not config.has_option("client", "payment-token") or  \
-        not config.has_option("client", "payment-token-secret")):
+    if not config.has_option("client", "payment-token") or \
+        not config.has_option("client", "payment-token-secret"):
         _establish_payment_session(config, client, options)
     else:
         client.set_token(config.get("client", "payment-token"),
@@ -247,13 +247,13 @@ def _purchase(config, options, lfilename):
     attempts = 0
     max_attempts = 3
     purchase_success = False
-    while(not purchase_success and attempts < max_attempts):
+    while not purchase_success and attempts < max_attempts:
         try:
             purchase = client.purchase(listing_url, listing_hash)
             purchase_success = True
 
             # display the item purchased and remaining balance
-            if(purchase["authorized"] == "true"):
+            if purchase["authorized"] == "true":
                 sys.stdout.write("Purchase of '%s' successful.\n" % \
                     (asset["dc:title"],))
                 sys.stdout.write("$%s remaining for session.\n" % \
@@ -262,7 +262,7 @@ def _purchase(config, options, lfilename):
             sys.stderr.write("Error: %s" % e)
             attempts += 1
             # if there was an error, re-establish a payment session
-            if(attempts < max_attempts):
+            if attempts < max_attempts:
                 _establish_payment_session(config, client, options)
 
 def _establish_system_session(config, client, options):
@@ -299,8 +299,8 @@ def _system(config, options, command):
     client = payswarm.PaySwarmClient(config, client_id, client_secret)
 
     # ensure that there is an active session in place
-    if(not config.has_option("client", "system-token") or  \
-        not config.has_option("client", "system-token-secret")):
+    if not config.has_option("client", "system-token") or \
+        not config.has_option("client", "system-token-secret"):
         _establish_system_session(config, client, options)
     else:
         client.set_token(config.get("client", "system-token"),
@@ -313,7 +313,7 @@ def _system(config, options, command):
     attempts = 0
     max_attempts = 3
     success = False
-    while(not success and attempts < max_attempts):
+    while not success and attempts < max_attempts:
         try:
             result = client.call(command_url, "error")
             try:
@@ -325,7 +325,7 @@ def _system(config, options, command):
             sys.stderr.write("Error: %s" % e)
             attempts += 1
             # if there was an error, re-establish a payment session
-            if(attempts < max_attempts):
+            if attempts < max_attempts:
                 _establish_system_session(config, client, options)
 
 if __name__ == "xxx__main__":

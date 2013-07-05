@@ -57,7 +57,7 @@ def register_new_key(options):
         pass
     
     # Step #1: Generate a public/private keypair (or use an existing one).
-    if(not psc.has_keys()):
+    if not psc.has_keys():
         print('Generating new public/private keypair...')
         psc.create_key_pair()
         psc.write_config(options.config_name)
