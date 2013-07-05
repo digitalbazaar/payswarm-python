@@ -49,7 +49,7 @@ class PaySwarmClient(object):
             }
         """
         self.config = {}
-        self.config['@context'] = 'https://w3id.org/payswarm/v1'
+        self.config['@context'] = constants.CONTEXT_URL
 
     def _get_config_filename(self, config_name):
         base = os.path.expanduser('~')
