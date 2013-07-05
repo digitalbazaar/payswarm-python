@@ -16,320 +16,157 @@ import signature
 import storage
 import util
 
-__all__ = ["config", "jsonld", "purchase", "signature", "storage", "util"]
+__all__ = ['config', 'jsonld', 'purchase', 'signature', 'storage', 'util']
+
+class ConfigException(Exception):
+    """The class of exceptions used for configuration errors."""
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
 
 class PaySwarmClient(object):
-    """The PaySwarm Client is used to communicate with any PaySwarm system."""
+    """The PaySwarm Client is used to communicate with the PaySwarm network."""
 
-    def __init__(self, config, client_id, secret):
+    def __init__(self):
         """Creates a new PaySwarm client using a provided configuration.
 
-        config - The configuration information for the PaySwarm client.
-        client_id - the OAuth Client ID for the consumer.
-        secret - the OAuth secret for the consumer.
+        config - The name of a config to load from disk or an dict that 
+            contains configuration information. If one isn't given, the
+            default will be used. If the value is a string,
+            it should be a name of a config file stores in the PaySwarm
+            config directory, or a filesystem pathname. If the value is a
+            dict, the following keys are used by the client:
+            
+            {
+              publicKey: { // the public key information object
+                id: // the URL identifier for the public key
+                publicKeyPem: // the public key in PEM format
+                privateKeyPem: // the private key in PEM format
+              }
+              source: // the source account that funds should be taken from
+              owner: // the owner of the config, keys, and account
+            }
         """
-        oauth.Client.__init__(self, oauth.Consumer(client_id, secret))
-        self.config = config
+        self.config = {}
+        self.config['@context'] = 'https://w3id.org/payswarm/v1'
 
-    def _check_response(self, response, content, error_message):
-        """Checks the response from an based PaySwarm call.
-
-        response - The HTTP response object.
-        content - the body of the HTTP response.
-        error_message - the error message to throw if there is an error.
-        """
-        code = int(response["status"])
-        # check code is in 2xx range
-        # HTTP request should have resolved 3xx issues
-        if code < 200 or code >= 300:
-            if response["content-type"] == "application/json":
-                try:
-                    content = json.loads(content)
-                except UnicodeDecodeError, e:
-                    print "UnicodeDecodeError(content) ==", content
-                    raise Exception(error_message, code, content)
-                #print json.dumps(content, indent=3)
-            raise Exception(error_message, code, content)
-
-    def _decode_response(self, response, content):
-        """Checks the response from an based PaySwarm call.
-
-        response - The HTTP response object.
-        content - the body of the HTTP response, which will be decoded depending
-            on the Content-Type.
-        """
-        ct = response.get("content-type", None)
-        if ct == "application/json":
-            return json.loads(content)
-        elif ct == "application/x-www-form-urlencoded":
-            return dict(urlparse.parse_qsl(content))
+    def _get_config_filename(self, config_name):
+        base = os.path.expanduser('~')
+        if 'XDG_CONFIG_HOME' in os.environ:
+            base = os.path.abspath(os.environ['XDG_CONFIG_HOME'])
+            
+        config_filename = os.path.join(base, '.config', 'payswarm1', 'default')
+        
+        # if a config name was not given, use the default    
+        if config_name == None:
+            return config_filename
+        
+        if os.path.isfile(config_name):
+            # if a valid relative file name was given, use that
+            config_filename = os.path.abspath(config_name)
         else:
-            # fallback to plain content
-            return content
+            # if a configName was given, append it to the base config directory
+            config_filename = \
+                os.path.join(base,  '.config', 'payswarm1', config_name)
+                
+        return config_filename
 
-    def generate_registration_url(self):
-        """Requests a registration token and returns a verification URL.
+    def create_key_pair(self):
+        """Generates a public/private keypair for the client."""
+        
+        # FIXME: implement key pair generation
+        self.config['publicKey'] = {}
+        self.config['publicKey']['publicKeyPem'] = 'NOT IMPLEMENTED'
+        self.config['publicKey']['privateKeyPem'] = 'NOT IMPLEMENTED'
 
-        Performs the first part of what is called an Out-Of-Band OAuth 
-        verification. This type of verification is needed when operating 
-        outside of a Web User Agent environment. 
+    def has_keys(self):
+        """Returns whether or not the client has a valid set of keys."""
+        
+        keys_exist = 'publicKey' in self.config and \
+          'publicKeyPem' in self.config['publicKey'] and \
+          'privateKeyPem' in self.config['publicKey']
+        
+        return  keys_exist
 
-        OAuth relies heavily on re-directs, if a re-direct mechanism isn't 
-        available, all that can be done is to ask the person using the 
-        application to go to a particular URL.
+    def decrypt(self, encrypted_message):
+        """Generates a public/private keypair for the client."""
+        
+        message = {}
+        
+        message['destination'] = 'NOT IMPLEMENTED'
+        message['owner'] = 'NOT IMPLEMENTED'
+        message['publicKey'] = 'NOT IMPLEMENTED'
+        
+        return message
 
-        Throws an exception if anything nasty happens.
+    def load_config(self, config=None):
+        """Loads a PaySwarm configuration into the client.
+        
+        config - The name of a config to load from disk or an dict that 
+            contains configuration information. If one isn't given, the
+            default will be used. If the value is a string,
+            it should be a name of a config file stores in the PaySwarm
+            config directory, or a filesystem pathname. If the value is a
+            dict, the following keys are used by the client:
+            
+            {
+              publicKey: { // the public key information object
+                id: // the URL identifier for the public key
+                publicKeyPem: // the public key in PEM format
+                privateKeyPem: // the private key in PEM format
+              }
+              source: // the source account that funds should be taken from
+              owner: // the owner of the config, keys, and account
+            }
         """
-        request_url = self.config.get("general", "request-url")
-        authorize_url = self.config.get("general", "authorize-url")
-        params = {
-            "oauth_callback": "oob",
-            "scope": "payswarm-registration",
-        }
-
-        # Request a new registration token
-        response, content = self.request(request_url, "POST", parameters=params)
-        self._check_response(response, content, 
-            "Error: Failed to request a temporary registration token.")
-
-        # Extract the registration token information
-        self.token = oauth.Token.from_string(content)
-
-        # Write the registration token to the configuration
-        self.config.set("application", "registration-token", self.token.key)
-
-        # Build the registration URL
-        rval = authorize_url + "?oauth_token=%s" % self.token.key
-
-        return rval
-
-    def generate_payment_session_url(self):
-        """Requests a payment token and returns a verification URL.
-
-        Performs the first part of what is called an Out-Of-Band OAuth 
-        verification. This type of verification is needed when operating 
-        outside of a Web User Agent environment. 
-
-        OAuth relies heavily on re-directs, if a re-direct mechanism isn't 
-        available, all that can be done is to ask the person using the 
-        application to go to a particular URL.
-
-        Throws an exception if anything nasty happens.
-        """
-        request_url = self.config.get("general", "request-url")
-        authorize_url = self.config.get("general", "authorize-url")
-        params = {
-            "oauth_callback": "oob",
-            "currency": "USD",
-            "balance": "10.00",
-            "scope": "payswarm-payment",
-        }
-
-        # Request a new registration token
-        response, content = self.request(request_url, "POST", parameters=params)
-        self._check_response(response, content, 
-            "Error: Failed to request a temporary registration token.")
-
-        # Extract the registration token information
-        self.token = oauth.Token.from_string(content)
-
-        # Write the registration token to the configuration
-        self.config.set("client", "payment-token", self.token.key)
-
-        # Build the registration URL
-        rval = authorize_url + "?oauth_token=%s" % self.token.key
-
-        return rval
-
-    def generate_system_session_url(self):
-        """Requests a sytem token and returns a verification URL.
-
-        Throws an exception if anything nasty happens.
-        """
-        request_url = self.config.get("general", "request-url")
-        authorize_url = self.config.get("general", "authorize-url")
-        params = {
-            "oauth_callback": "oob",
-            "scope": "payswarm-system",
-        }
-
-        # Request a new token
-        response, content = self.request(request_url, "POST", parameters=params)
-        self._check_response(response, content, 
-            "Error: Failed to request a temporary system token.")
-
-        # Extract the token information
-        self.token = oauth.Token.from_string(content)
-
-        # Write the token to the configuration
-        self.config.set("client", "system-token", self.token.key)
-
-        # Build the URL
-        rval = authorize_url + "?oauth_token=%s" % self.token.key
-
-        return rval
-
-    def complete_registration(self, verifier):
-        """Completes the retrieval of a registration token.
-
-        Performs the second part of what is called an Out-Of-Band OAuth 
-        verification. This type of verification is needed when operating 
-        outside of a Web User Agent environment. 
-
-        OAuth relies heavily on re-directs, if a re-direct mechanism isn't 
-        available, all that can be done is to ask the person using the 
-        application to go to a particular URL. This step happens after the
-        person has gone to the URL and verified the registration token
-        request. They are given a verifier, which is given as input to this
-        method.
-
-        verifier - the verifier provided to the person after approving the
-            registration token.
-
-        Throws an exception if anything nasty happens.
-        """
-        tokens_url = self.config.get("general", "tokens-url")
-        self.token.set_verifier(verifier)
-
-        # get the registration token and secret
-        response, content = self.request(tokens_url, "GET")
-        self._check_response(response, content, 
-            "Error: Failed to request a permanent registration token.")
-        self.token = oauth.Token.from_string(content)
-
-        # write the registration token to the configuration
-        self.config.set( \
-            "application", "registration-token", self.token.key)
-        self.config.set( \
-            "application", "registration-token-secret", self.token.secret)
-
-    def authorize_payment_session(self, verifier):
-        """Completes the retrieval of a payment token.
-
-        Performs the second part of what is called an Out-Of-Band OAuth 
-        verification. This type of verification is needed when operating 
-        outside of a Web User Agent environment. 
-
-        OAuth relies heavily on re-directs, if a re-direct mechanism isn't 
-        available, all that can be done is to ask the person using the 
-        application to go to a particular URL. This step happens after the
-        person has gone to the URL and verified the payment session
-        request. They are given a verifier, which is given as input to this
-        method.
-
-        verifier - the verifier provided to the person after approving the
-            payment token.
-
-        Throws an exception if anything nasty happens.
-        """
-        tokens_url = self.config.get("general", "tokens-url")
-        self.token.set_verifier(verifier)
-
-        # get the registration token and secret
-        response, content = self.request(tokens_url, "GET")
-        self._check_response(response, content, 
-            "Error: Failed to request a payment token.")
-        self.token = oauth.Token.from_string(content)
-
-        # write the registration token to the configuration
-        self.config.set( \
-            "client", "payment-token", self.token.key)
-        self.config.set( \
-            "client", "payment-token-secret", self.token.secret)
-
-    def authorize_system_session(self, verifier):
-        """Completes the retrieval of a system token.
-
-        verifier - the verifier provided to the person after approving the
-            payment token.
-
-        Throws an exception if anything nasty happens.
-        """
-        tokens_url = self.config.get("general", "tokens-url")
-        self.token.set_verifier(verifier)
-
-        # get the registration token and secret
-        response, content = self.request(tokens_url, "GET")
-        self._check_response(response, content, 
-            "Error: Failed to request a system token.")
-        self.token = oauth.Token.from_string(content)
-
-        # write the registration token to the configuration
-        self.config.set( \
-            "client", "system-token", self.token.key)
-        self.config.set( \
-            "client", "system-token-secret", self.token.secret)
-
-    def call(self, url, error_message, post_data=None):
-        """Performs a call against a URL using OAuth credentials.
-
-        An OAuth Token must already be active for this client. The Token is
-        used to authenticate and perform a call to the given URL. The standard
-        HTTP method is GET unless post_data is supplied, then it's POST.
-
-        Throws an exception if anything nasty happens.
-        """
-        response = None
-        content = None
-
-        # check to see if the call is a GET or a POST based on post_data
-        if(post_data == None):
-            response, content = self.request(url, "GET")
+        if type(config) == type(dict()):
+            self.config = config
+        elif config == None or type(config) == type(str()):
+            config_filename = self._get_config_filename(config)
+            
+            if os.path.isfile(config_filename):
+                config_file = open(config_filename, 'r')
+                self.config = json.loads(config_file.read())
+            else:
+                raise ConfigException( \
+                    'Config file does not exist: ' + config_filename)
         else:
-            response, content = self.request(url, "POST", parameters=post_data)
+            raise ConfigException( \
+                'PaySwarmClient config must be either a string or dict.')
 
-        self._check_response(response, content, error_message)
-        return self._decode_response(response, content)
-
-    def register_public_key(self):
-        """Registers the public key stored in the config object.
-
-        Registers the public key stored in the configuration file at the
-        PaySwarm Authority and stores the URL to the key in the configuration
-        file as well.
-
-        Throws an exception if anything nasty happens.
+    def write_config(self, config=None):
+        """Writes a PaySwarm configuration to the filesystem.
+        
+        config - A string that should either be a name of a config file 
+            stored in the PaySwarm config directory, or a filesystem pathname.
         """
-        key_url = self.config.get("application", "keys-url")
-        public_key = self.config.get("application", "public-key")
+        config_filename = self._get_config_filename(config)
+        config_dir = os.path.dirname(config_filename)
 
-        # perform the registration
-        post_data = {"public_key": public_key}
-        info = self.call(key_url, "Failed to register public key", post_data)
-        
-        # store the key URL in the configuration
-        public_key_url = info["id"]
-        self.config.set("application", "public-key-url", public_key_url)
+        # create the config directory if it doesn't already exist
+        if not os.path.isdir(config_dir):
+            os.makedirs(config_dir, 0700)
+            
+        cfile = open(config_filename, 'w')
+        configJson = json.dumps( \
+            self.config, sort_keys=True, indent=2, separators=(',', ': '))
+        cfile.write(configJson)
 
-    def set_token(self, token, secret):
-        """Sets the token information directly.
+    def load_web_keys_config(self, authority):
+        """Loads the Web Keys configuration from a given PaySwarm Authority.
         
-        token - the token string.
-        secret - the secret associated with the token.
+        authority - the PaySwarm Authority URL to use when discovering the 
+            Web Keys config.
         """
-        self.token = oauth.Token(token, secret)
-
-    def clear_token(self):
-        """Clears the OAuth token information."""
-        self.token = None
-
-    def purchase(self, listing_url, listing_hash):
-        """Performs a purchase given a listing URL and a hash.
         
-        listing_url - the listing to purchase.
-        listing_hash - the listing hash to provide a means of ensuring that
-            the listing URL provided is the one that is intended to be 
-            purchased.
-        """
-        rval = None
-        
-        contracts_url = self.config.get("general", "contracts-url")
-        post_data = \
-            { "listing": listing_url, "listing_hash": listing_hash }
-        rval = self.call(
-            contracts_url, "Failed to purchase contract", post_data)
+        # FIXME: Implement this
+        pass
+    
+    def get_registration_url(self):
+        """Returns the Web Keys registration URL."""
 
-        return rval
+        return "https://example.com/register"
 
 class Plugin(object):
     def get_name(self):
