@@ -5,13 +5,9 @@ import sys
 sys.path.insert(0, '../../pyld/lib')
 sys.path.insert(0, '../lib')
 
-import hashlib
 import json
 from optparse import OptionParser
-import os
 import payswarm
-import time
-from urlparse import urlparse, parse_qs
 
 USAGE = """%(prog)s
 

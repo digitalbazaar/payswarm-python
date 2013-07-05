@@ -5,6 +5,7 @@ establishing Payment Sessions and performing purchases."""
 
 import json
 import os
+import time
 import urlparse
 
 from Crypto.PublicKey import RSA
@@ -105,7 +106,12 @@ class PaySwarmClient(object):
         message['owner'] = 'NOT IMPLEMENTED'
         message['publicKey'] = 'NOT IMPLEMENTED'
         
+        # FIXME: Implement this function
         return message
+
+    def get_config(self):
+        """Return the current configuration for the PaySwarm client."""
+        return self.config
 
     def load_config(self, config=None):
         """Loads a PaySwarm configuration into the client.
@@ -118,13 +124,13 @@ class PaySwarmClient(object):
             dict, the following keys are used by the client:
             
             {
-              publicKey: { // the public key information object
-                id: // the URL identifier for the public key
-                publicKeyPem: // the public key in PEM format
-                privateKeyPem: // the private key in PEM format
+              publicKey: { # the public key information object
+                id: # the URL identifier for the public key
+                publicKeyPem: # the public key in PEM format
+                privateKeyPem: # the private key in PEM format
               }
-              source: // the source account that funds should be taken from
-              owner: // the owner of the config, keys, and account
+              source: # the source account that funds should be taken from
+              owner: # the owner of the config, keys, and account
             }
         """
         if type(config) == type(dict()):
@@ -167,13 +173,44 @@ class PaySwarmClient(object):
             Web Keys config.
         """
         
-        # FIXME: Implement this
+        # FIXME: Implement this function
         pass
     
     def get_registration_url(self):
         """Returns the Web Keys registration URL."""
 
+        # FIXME: Implement this function
         return "https://example.com/register"
+
+    def hash(self, message):
+        """Returns a hash of a PaySwarm JSON-LD message."""
+
+        # FIXME: Implement this function
+        return 'notimplemented'
+    
+    def sign(self, message):
+        """Returns a digitally signed JSON-LD object."""
+
+        # FIXME: Implement this function
+        return {'signature': 'NOT IMPLEMENTED'}
+
+def w3c_date(i):
+    """Return a valid W3C datetime given milliseconds since the epoch """
+    # This function from: https://gist.github.com/mnot/246088
+    year, month, day, hour, minute, second, wday, jday, dst = \
+        time.gmtime(i)
+    o = str(year)
+    if (month, day, hour, minute, second) == (1, 1, 0, 0, 0): return o
+    o = o + '-%2.2d' % month
+    if (day, hour, minute, second) == (1, 0, 0, 0): return o
+    o = o + '-%2.2d' % day
+    if (hour, minute, second) == (0, 0, 0): return o
+    o = o + 'T%2.2d:%2.2d' % (hour, minute)
+    if second != 0:
+        o = o + ':%2.2d' % second
+    o = o + 'Z'
+    
+    return o
 
 class Plugin(object):
     def get_name(self):
